@@ -1,117 +1,97 @@
-# Patternfly Seed
+# HCC AI Search
 
-Patternfly Seed is an open source build scaffolding utility for web apps. The primary purpose of this project is to give developers a jump start when creating new projects that will use patternfly. A secondary purpose of this project is to serve as a reference for how to configure various aspects of an application that uses patternfly, webpack, react, typescript, etc.
+A **Hybrid Cloud Console (HCC)** prototype for console-wide search and ask. It explores how people can find services, resources, documentation, and take action — including asking AI — from a single search field in the masthead.
 
-Out of the box you'll get an app layout with chrome (header/sidebar), routing, build pipeline, test suite, and some code quality tools. Basically, all the essentials.
+This is a **clickable UX prototype**, not a production backend. Search results, inventory, and AI answers are mocked so reviewers can try the interaction.
 
-<img width="1058" alt="Out of box dashboard view of patternfly seed" src="https://github.com/user-attachments/assets/0227b366-67f1-4df8-8d92-e8e95d6e08b3" />
+**Try it:** [https://sjcox-rh.github.io/HCC-AI-Search/](https://sjcox-rh.github.io/HCC-AI-Search/)
 
-## Quick-start
+## What this prototype is for
+
+HCC spans many products and pages. Today, finding the right landing page, host, cluster, playbook, or doc often means knowing where to click. This prototype tests a single **Search or ask AI** experience that can:
+
+- Jump to a service or related page
+- Surface clusters, hosts, systems, groups, and playbooks
+- Answer natural-language questions with a direct AI summary
+- Point to getting-started and other documentation
+- Carry the intent into the destination page as filter chips
+
+Built with [PatternFly](https://www.patternfly.org/) v6 on the PatternFly React seed.
+
+## Main features
+
+### Masthead search
+
+- Search lives in the console chrome, next to the product name.
+- Collapsed placeholder: **Search or ask AI...**
+- When the field is focused, it expands and the placeholder becomes **Ask AI, jump to resources, run playbooks, search docs...**
+- Open search with a click, or with **⌘K** (Mac) / **Ctrl+K** (Windows/Linux).
+- **Esc** or a click outside closes search and clears the query.
+- Results hang from the search field as a dropdown. The input stays in the masthead.
+
+### Suggestions (empty state)
+
+With no query, search shows **Suggestions** based on the current page — for example CVE, storage, or subscription prompts on the homepage, or alerting and IAM prompts on those pages.
+
+### Search and ask
+
+Typing a query returns a mixed list (no category headings). Result type is shown with an icon; hover the icon for a tooltip (landing page, page, playbook, action, cluster, host, system, group, documentation).
+
+When a query matches a known intent, an **AI answer** card appears first, with a short summary and follow-up actions (for example view hosts or generate a playbook).
+
+### Result ranking
+
+For a typical service or platform query, results are ordered:
+
+1. Direct AI answer, when one applies
+2. Service **landing page**, then related pages, playbooks, and actions
+3. Inventory: **clusters, hosts, systems, groups**
+4. **Getting started** docs (when they exist) and other documentation
+
+Covered mock catalog includes Hybrid Cloud Console, RHEL, OpenShift, Insights, alerting, IAM, automation, and subscriptions.
+
+### Navigation and filters
+
+Selecting a result can navigate into the prototype and apply **filter chips** on the destination page, so a natural-language query is shown as translated console filters.
+
+Playbook-style actions are mocked: they show a confirmation that a remediation playbook was queued (prototype only).
+
+### Console chrome
+
+The prototype sits in a simplified HCC shell: Red Hat masthead, services menu, and a product name that switches between **Hybrid Cloud Console** (home) and **Red Hat Enterprise Linux** on other pages.
+
+## Queries worth trying
+
+These mocked intents show the AI answer and mixed-result patterns:
+
+- `Show me all RHEL 8 servers with critical CVEs in production`
+- `Which OpenShift clusters are running out of storage?`
+- `RHEL subscription usage`
+
+Also try service names such as `Insights`, `OpenShift`, `Alert Manager`, or `IAM` to see landing pages, related pages, inventory, and getting-started docs.
+
+## Local development
 
 ```bash
-git clone https://github.com/patternfly/patternfly-react-seed
-cd patternfly-react-seed
-npm install && npm run start:dev
-```
-## Development scripts
-```sh
-# Install development/build dependencies
+git clone https://github.com/sjcox-rh/HCC-AI-Search.git
+cd HCC-AI-Search
 npm install
-
-# Start the development server
 npm run start:dev
-
-# Run a production build (outputs to "dist" dir)
-npm run build
-
-# Run the test suite
-npm run test
-
-# Run the test suite with coverage
-npm run test:coverage
-
-# Run the linter
-npm run lint
-
-# Run the code formatter
-npm run format
-
-# Launch a tool to inspect the bundle size
-npm run bundle-profile:analyze
-
-# Start the express server (run a production build first)
-npm run start
 ```
 
-## Configurations
-* [TypeScript Config](./tsconfig.json)
-* [Webpack Config](./webpack.common.js)
-* [Jest Config](./jest.config.js)
-* [Editor Config](./.editorconfig)
+The app runs at `http://localhost:9000` by default. If that port is in use, start with `PORT=9001 npm run start:dev`.
 
-## Raster image support
+| Script | Description |
+| --- | --- |
+| `npm run start:dev` | Development server |
+| `npm run build` | Production build (`dist/`) |
+| `npm test` | Test suite |
+| `npm run lint` | ESLint |
+| `npm run format` | Prettier |
 
-To use an image asset that's shipped with PatternFly core, you'll prefix the paths with "@assets". `@assets` is an alias for the PatternFly assets directory in node_modules.
+Pushes to `main` deploy the GitHub Pages preview automatically.
 
-For example:
-```js
-import imgSrc from '@assets/images/g_sizing.png';
-<img src={imgSrc} alt="Some image" />
-```
+## Notes
 
-You can use a similar technique to import assets from your local app, just prefix the paths with "@app". `@app` is an alias for the main src/app directory.
-
-```js
-import loader from '@app/assets/images/loader.gif';
-<img src={loader} alt="Content loading" />
-```
-
-## Vector image support
-Inlining SVG in the app's markup is also possible.
-
-```js
-import logo from '@app/assets/images/logo.svg';
-<span dangerouslySetInnerHTML={{__html: logo}} />
-```
-
-You can also use SVG when applying background images with CSS. To do this, your SVG's must live under a `bgimages` directory (this directory name is configurable in [webpack.common.js](./webpack.common.js#L5)). This is necessary because you may need to use SVG's in several other context (inline images, fonts, icons, etc.) and so we need to be able to differentiate between these usages so the appropriate loader is invoked.
-```css
-body {
-  background: url(./assets/bgimages/img_avatar.svg);
-}
-```
-
-## Adding custom CSS
-When importing CSS from a third-party package for the first time, you may encounter the error `Module parse failed: Unexpected token... You may need an appropriate loader to handle this file typ...`. You need to register the path to the stylesheet directory in [stylePaths.js](./stylePaths.js). We specify these explicitly for performance reasons to avoid webpack needing to crawl through the entire node_modules directory when parsing CSS modules.
-
-## Code quality tools
-* For accessibility compliance, we use [react-axe](https://github.com/dequelabs/react-axe)
-* To keep our bundle size in check, we use [webpack-bundle-analyzer](https://github.com/webpack-contrib/webpack-bundle-analyzer)
-* To keep our code formatting in check, we use [prettier](https://github.com/prettier/prettier)
-* To keep our code logic and test coverage in check, we use [jest](https://github.com/facebook/jest)
-* To ensure code styles remain consistent, we use [eslint](https://eslint.org/)
-
-## AI Documentation & Development Rules
-
-This project includes an [`ai-documentation`](./ai-documentation/README.md) directory designed primarily for use by AI agents in AI-enabled IDEs (such as Cursor, Claude, and others). These files provide essential rules, guidelines, and best practices for building web applications with PatternFly React, enabling AI coding assistants to:
-
-- Offer context-aware suggestions and enforce consistent component architecture and styling standards
-- Guide developers to use PatternFly v6 components and utility classes
-- Promote accessibility and state management best practices
-- Reference troubleshooting tips and specialized rules (charts, chatbot, etc.)
-
-**How to use:**
-If you are using an AI-enabled IDE, the AI agent will automatically leverage the [AI Documentation & Rules](./ai-documentation/README.md) to assist you as you develop.
-
-By following these rules—either directly or via your AI assistant—you'll ensure your app is maintainable, accessible, and consistent with PatternFly best practices.
-
-## Multi environment configuration
-This project uses [dotenv-webpack](https://www.npmjs.com/package/dotenv-webpack) for exposing environment variables to your code. Either export them at the system level like `export MY_ENV_VAR=http://dev.myendpoint.com && npm run start:dev` or simply drop a `.env` file in the root that contains your key-value pairs like below:
-
-```sh
-ENV_1=http://1.myendpoint.com
-ENV_2=http://2.myendpoint.com
-```
-
-
-With that in place, you can use the values in your code like `console.log(process.env.ENV_1);`
+- Search data lives in `src/app/SearchPalette/searchPaletteData.ts`. There is no live console or Lightspeed API.
+- PatternFly guidance used by this project is in [`ai-documentation/`](./ai-documentation/README.md).
