@@ -1,10 +1,11 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   Accordion, 
   AccordionContent, 
   AccordionItem,
   AccordionToggle,
+  Alert,
   Breadcrumb,
   BreadcrumbItem,
   Button,
@@ -16,6 +17,7 @@ import {
   Flex,
   FlexItem,
   Label,
+  LabelGroup,
   PageSection,
   Tab,
   TabTitleIcon,
@@ -29,6 +31,10 @@ import { HelpPanelContext } from '@app/AppLayout/AppLayout';
 
 const Dashboard: React.FunctionComponent = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const searchState = location.state as { searchFilters?: string[]; searchQuery?: string } | null;
+  const [searchFilters, setSearchFilters] = React.useState<string[]>(searchState?.searchFilters || []);
+  const searchQuery = searchState?.searchQuery;
   const helpPanelContext = React.useContext(HelpPanelContext);
   const [activeTabKey, setActiveTabKey] = React.useState<string | number>(0);
   const [alertNotifiersTabKey, setAlertNotifiersTabKey] = React.useState<string | number>(0);
@@ -54,6 +60,12 @@ const Dashboard: React.FunctionComponent = () => {
     }));
   };
 
+  React.useEffect(() => {
+    if (searchState?.searchFilters) {
+      setSearchFilters(searchState.searchFilters);
+    }
+  }, [searchState]);
+
   return (
     <>
       <PageSection hasBodyWrapper={false}>
@@ -62,6 +74,28 @@ const Dashboard: React.FunctionComponent = () => {
           <BreadcrumbItem isActive>Overview</BreadcrumbItem>
         </Breadcrumb>
       </PageSection>
+
+      {searchFilters.length > 0 && (
+        <PageSection hasBodyWrapper={false}>
+          <Alert
+            variant="info"
+            isInline
+            title={searchQuery ? `Search translated “${searchQuery}” into these filters` : 'Search applied these filters'}
+            actionClose={undefined}
+          >
+            <LabelGroup categoryName="Active filters" numLabels={8}>
+              {searchFilters.map((filter) => (
+                <Label
+                  key={filter}
+                  onClose={() => setSearchFilters((current) => current.filter((item) => item !== filter))}
+                >
+                  {filter}
+                </Label>
+              ))}
+            </LabelGroup>
+          </Alert>
+        </PageSection>
+      )}
       
       <PageSection hasBodyWrapper={false}>
         <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>

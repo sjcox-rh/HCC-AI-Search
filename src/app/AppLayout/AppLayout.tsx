@@ -6,6 +6,10 @@ import CommentIcon from '@app/bgimages/comment-icon.svg';
 import FeedbackIcon from '@app/bgimages/feedback-icon.svg';
 import BugIcon from '@app/bgimages/bug-icon.svg';
 import DirectionIcon from '@app/bgimages/direction-icon.svg';
+import RedHatLogo from '@app/bgimages/redhat-logo.svg';
+import { SearchPalette } from '@app/SearchPalette/SearchPalette';
+import { getShortcutLabel } from '@app/SearchPalette/searchPaletteData';
+import '@app/SearchPalette/SearchPalette.css';
 import {
   Avatar,
   Badge,
@@ -119,6 +123,7 @@ import {
   SignOutAltIcon,
   StarIcon,
   TachometerAltIcon,
+  ThIcon,
   TimesIcon,
   UserIcon,
   UsersIcon,
@@ -1163,12 +1168,12 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
     });
   };
   
-  // Logo dropdown and expandable search state
+  // Logo dropdown and AI search palette
   const [isLogoDropdownOpen, setIsLogoDropdownOpen] = React.useState(false);
-  const [isSearchExpanded, setIsSearchExpanded] = React.useState(false);
-  const [mastheadSearchValue, setMastheadSearchValue] = React.useState('');
-  const [searchResults, setSearchResults] = React.useState<Array<{id: string, title: string, description: string, category: string, route: string | null}>>([]);
-  const [showSearchResults, setShowSearchResults] = React.useState(false);
+  const [isSearchPaletteOpen, setIsSearchPaletteOpen] = React.useState(false);
+  const [aiSearchQuery, setAiSearchQuery] = React.useState('');
+  const aiSearchInputRef = React.useRef<HTMLInputElement>(null);
+  const aiSearchFieldRef = React.useRef<HTMLDivElement>(null);
   
   // Bookmarked menu items state
   const [bookmarkedItems, setBookmarkedItems] = React.useState<Set<string>>(new Set());
@@ -1526,9 +1531,6 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   // Ref for services dropdown to handle outside clicks
   const servicesDropdownRef = React.useRef<HTMLDivElement>(null);
   
-  // Ref for search container to handle outside clicks
-  const searchContainerRef = React.useRef<HTMLDivElement>(null);
-  
   // Location and navigation
   const location = useLocation();
   const navigate = useNavigate();
@@ -1556,69 +1558,29 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   // Check if we're on a page without navigation (homepage or all services)
   const isPageWithoutNav = location.pathname === '/' || location.pathname === '/all-services';
 
-  // Mock search data
-  const mockSearchData = [
-    // Main Settings Bundle Pages
-    { id: '1', title: 'Overview', description: 'View system overview and general information', category: 'Settings', route: '/overview' },
-    { id: '2', title: 'Alert Manager', description: 'Configure and manage system alerts and notifications', category: 'Settings', route: '/alert-manager' },
-    { id: '3', title: 'Data Integration', description: 'Manage data integration workflows, connectors, and synchronization settings', category: 'Settings', route: '/data-integration' },
-    { id: '4', title: 'Event Log', description: 'View and configure system event logging and monitoring', category: 'Settings', route: '/event-log' },
-    { id: '5', title: 'Learning Resources', description: 'Access training materials, tutorials, and documentation resources', category: 'Settings', route: '/learning-resources' },
-    
-    // IAM Bundle Pages
-    { id: '6', title: 'My User Access', description: 'View and manage your personal access permissions and settings', category: 'IAM', route: '/my-user-access' },
-    { id: '7', title: 'User Access', description: 'Manage user accounts, groups, and access permissions overview', category: 'IAM', route: '/user-access' },
-    { id: '8', title: 'Users', description: 'Manage user accounts and their access permissions', category: 'IAM', route: '/users' },
-    { id: '9', title: 'Groups', description: 'Create and manage user groups and group-based permissions', category: 'IAM', route: '/groups' },
-    { id: '10', title: 'Roles', description: 'Define and manage user roles with specific permissions and access levels', category: 'IAM', route: '/roles' },
-    { id: '11', title: 'Workspaces', description: 'Manage workspaces and project environments for teams', category: 'IAM', route: '/workspaces' },
-    { id: '12', title: 'Red Hat Access Requests', description: 'Manage access requests for Red Hat services and resources', category: 'IAM', route: '/red-hat-access-requests' },
-    { id: '13', title: 'Authentication Policy', description: 'Configure authentication policies and security settings', category: 'IAM', route: '/authentication-policy' },
-    { id: '14', title: 'Service Accounts', description: 'Manage service accounts and API credentials for automated systems', category: 'IAM', route: '/service-accounts' },
-    { id: '15', title: 'IAM Learning Resources', description: 'Access Identity & Access Management learning materials and guides', category: 'IAM', route: '/learning-resources-iam' },
-    
-    // Additional Services
-    { id: '16', title: 'Vulnerability', description: 'View and manage system vulnerabilities', category: 'RHEL', route: null },
-    { id: '17', title: 'Policies', description: 'Configure and manage security policies', category: 'RHEL', route: null },
-    { id: '18', title: 'Application Performance', description: 'Monitor application performance metrics', category: 'Monitoring', route: null }
-  ];
-
-  // Top 5 results for empty state
-  const topResults = [
-    { id: '1', title: 'Overview', description: 'View system overview and general information', category: 'Settings', route: '/overview' },
-    { id: '2', title: 'Alert Manager', description: 'Configure and manage system alerts and notifications', category: 'Settings', route: '/alert-manager' },
-    { id: '6', title: 'My User Access', description: 'View and manage your personal access permissions and settings', category: 'IAM', route: '/my-user-access' },
-    { id: '7', title: 'User Access', description: 'Manage user accounts, groups, and access permissions overview', category: 'IAM', route: '/user-access' },
-    { id: '3', title: 'Data Integration', description: 'Manage data integration workflows, connectors, and synchronization settings', category: 'Settings', route: '/data-integration' }
-  ];
-
-  // Hide search results and collapse search bar when clicking outside
   React.useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const searchButton = document.querySelector('[aria-label="Expandable search input toggle"]');
-      
-      // Check if click is on search toggle button - don't collapse if so
-      if (searchButton && searchButton.contains(event.target as Node)) {
-        return;
-      }
-      
-      // If search is expanded and click is outside the search container
-      if (isSearchExpanded && searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
-        setIsSearchExpanded(false);
-        setShowSearchResults(false);
-        setSearchResults([]);
-        setMastheadSearchValue('');
-      } else if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
-        // Just hide search results if search is not expanded
-        setShowSearchResults(false);
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setIsSearchPaletteOpen((isOpen) => {
+          if (isOpen) {
+            setAiSearchQuery('');
+            return false;
+          }
+          return true;
+        });
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isSearchExpanded]);
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
+  React.useEffect(() => {
+    if (isSearchPaletteOpen) {
+      aiSearchInputRef.current?.focus();
+    }
+  }, [isSearchPaletteOpen]);
 
   // Hide services dropdown when clicking outside
   React.useEffect(() => {
@@ -1998,58 +1960,6 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
 
   const onLogoDropdownSelect = () => {
     setIsLogoDropdownOpen(false);
-  };
-
-  const onSearchToggle = (event: React.SyntheticEvent<HTMLButtonElement>, isExpanded: boolean) => {
-    setIsSearchExpanded(!isSearchExpanded);
-    // Hide search results when collapsing, show top results when expanding
-    if (isSearchExpanded) {
-      setShowSearchResults(false);
-      setSearchResults([]);
-    } else {
-      // Show top results when expanding and search is empty
-      if (mastheadSearchValue.trim().length === 0) {
-        setSearchResults(topResults);
-        setShowSearchResults(true);
-      }
-    }
-  };
-
-  const onMastheadSearchChange = (_event: React.FormEvent<HTMLInputElement>, value: string) => {
-    setMastheadSearchValue(value);
-    
-    // Show top results when search is empty, filtered results when typing
-    if (value.trim().length === 0) {
-      // Show top results when search is empty
-      setSearchResults(topResults);
-      setShowSearchResults(true);
-    } else if (value.trim().length >= 2) {
-      // Perform filtered search when user types (minimum 2 characters)
-      const filteredResults = mockSearchData.filter(item =>
-        item.title.toLowerCase().includes(value.toLowerCase()) ||
-        item.description.toLowerCase().includes(value.toLowerCase()) ||
-        item.category.toLowerCase().includes(value.toLowerCase())
-      ).slice(0, 6); // Limit to 6 results
-      
-      setSearchResults(filteredResults);
-      setShowSearchResults(true);
-    } else {
-      // Hide results when typing 1 character (between empty and 2 chars)
-      setSearchResults([]);
-      setShowSearchResults(false);
-    }
-  };
-
-  const onMastheadSearchClear = () => {
-    setMastheadSearchValue('');
-    // Show top results when clearing search (if expanded)
-    if (isSearchExpanded) {
-      setSearchResults(topResults);
-      setShowSearchResults(true);
-    } else {
-      setSearchResults([]);
-      setShowSearchResults(false);
-    }
   };
 
   const renderSubTabs = (tabIndex: number, tab: TabContent, ariaLabel: string) => {
@@ -4258,166 +4168,71 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   const masthead = (
     <Masthead>
       <MastheadMain>
-        {!isPageWithoutNav && (
-          <MastheadToggle>
-            <Button
-              icon={<BarsIcon />}
-              variant="plain"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              aria-label="Global navigation"
-            />
-          </MastheadToggle>
-        )}
+        <MastheadToggle>
+          <MenuToggle
+            variant="plain"
+            onClick={() => setIsLogoDropdownOpen(!isLogoDropdownOpen)}
+            isExpanded={isLogoDropdownOpen}
+            aria-label="Red Hat Hybrid Cloud Console menu"
+          >
+            <ThIcon />
+          </MenuToggle>
+        </MastheadToggle>
         <MastheadBrand data-codemods>
-          <MastheadLogo data-codemods onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
-            <img 
-              src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d8/Red_Hat_logo.svg/2560px-Red_Hat_logo.svg.png"
+          <MastheadLogo data-codemods onClick={() => navigate('/')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '16px', marginLeft: '8px' }}>
+            <img
+              src={RedHatLogo}
               alt="Red Hat Logo"
-              style={{ height: '40px', width: 'auto' }}
+              style={{ width: '36px', height: 'auto' }}
             />
+            <span style={{ fontWeight: 700, fontSize: '20px', whiteSpace: 'nowrap', fontFamily: '"Red Hat Display", "RedHatDisplay", "Overpass", overpass, helvetica, arial, sans-serif', WebkitFontSmoothing: 'antialiased' }}>{location.pathname === '/' ? 'Hybrid Cloud Console' : 'Red Hat Enterprise Linux'}</span>
           </MastheadLogo>
         </MastheadBrand>
-        {/* Application dropdown next to logo */}
-        <div style={{ marginLeft: '4px', marginRight: '4px' }}>
-          <Tooltip 
-            content="Browse services" 
-            position="bottom"
-            {...(isLogoDropdownOpen ? { isVisible: false } : {})}
-          >
-            <MenuToggle
-              onClick={() => setIsLogoDropdownOpen(!isLogoDropdownOpen)}
-              isExpanded={isLogoDropdownOpen}
-              aria-label="Red Hat Hybrid Cloud Console menu"
-              style={{ 
-                fontSize: '14px'
-              }}
-            >
-              Red Hat Hybrid Cloud Console
-            </MenuToggle>
-          </Tooltip>
-        </div>
-        
-        {/* Expandable Search Input */}
-        <div 
-          ref={searchContainerRef}
-          style={{ 
-            marginRight: '4px',
-            width: isSearchExpanded ? '552px' : 'auto',
-            minWidth: isSearchExpanded ? '552px' : 'auto',
-            transition: 'all 0.3s ease',
-            position: 'relative'
-          }}
-        >
-          <style>{`
-            .pf-v6-c-masthead__logo {
-              width: auto !important;
-            }
-            .masthead-search-expanded {
-              --pf-v6-c-search-input--Width: 552px !important;
-              --pf-v6-c-search-input__text-input--Width: 552px !important;
-              --pf-v6-c-search-input--MinWidth: 552px !important;
-            }
-            .masthead-search-expanded .pf-v6-c-search-input,
-            .masthead-search-expanded .pf-v6-c-search-input__text-input,
-            .masthead-search-expanded .pf-v6-c-form-control {
-              width: 552px !important;
-              min-width: 552px !important;
-            }
-            .search-results-dropdown {
-              position: absolute;
-              top: calc(100% + 4px);
-              left: 0;
-              right: 0;
-              z-index: 1000;
-              background: var(--pf-v6-global--BackgroundColor--100);
-              border: var(--pf-v6-global--BorderWidth--sm) solid var(--pf-v6-global--BorderColor--200);
-              border-radius: var(--pf-v6-global--BorderRadius--md);
-              box-shadow: var(--pf-v6-global--BoxShadow--lg);
-              max-height: 400px;
-              overflow-y: auto;
-              padding: 24px;
-            }
-            .search-result-category-badge {
-              font-size: var(--pf-v6-global--FontSize--xs);
-              font-weight: var(--pf-v6-global--FontWeight--semi-bold);
-              color: var(--pf-v6-global--primary-color--100);
-              background-color: var(--pf-v6-global--primary-color--200);
-              padding: var(--pf-v6-global--spacer--xs) var(--pf-v6-global--spacer--sm);
-              border-radius: var(--pf-v6-global--BorderRadius--sm);
-              text-transform: uppercase;
-              letter-spacing: 0.025em;
-              white-space: nowrap;
-              margin-left: auto;
-            }
-          `}</style>
-          <Tooltip 
-            content="Search services" 
-            position="bottom"
-            {...(isSearchExpanded ? { isVisible: false } : {})}
-          >
-            <div className={isSearchExpanded ? 'masthead-search-expanded' : ''}>
-              <SearchInput
-                placeholder="Search across all services..."
-                value={mastheadSearchValue}
-                onChange={onMastheadSearchChange}
-                onClear={onMastheadSearchClear}
-                expandableInput={{
-                  isExpanded: isSearchExpanded,
-                  onToggleExpand: onSearchToggle,
-                  toggleAriaLabel: "Expandable search input toggle",
-                  hasAnimations: true
-                }}
-                aria-label="Global search"
-              />
-              
-              {/* Search Results Dropdown */}
-              {showSearchResults && searchResults.length > 0 && isSearchExpanded && (
-                <div className="search-results-dropdown">
-                                      <Menu 
-                        onSelect={(event, itemId) => {
-                          console.log('Selected search result:', itemId);
-                          setShowSearchResults(false);
-                          // Find the result and navigate if it has a route
-                          const selectedResult = searchResults.find(result => result.id === itemId);
-                          if (selectedResult && selectedResult.route) {
-                            navigate(selectedResult.route);
-                          }
-                        }}
-                      >
-                      <MenuList>
-                        <MenuGroup label="Top 5 results">
-                          {searchResults.map((result) => (
-                            <MenuItem 
-                              key={result.id}
-                              itemId={result.id}
-                              description={result.description}
-                              onClick={() => {
-                                console.log('Selected search result:', result);
-                                setShowSearchResults(false);
-                                // Navigate to the route if it exists
-                                if (result.route) {
-                                  navigate(result.route);
-                                }
-                              }}
-                            >
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                                <span>{result.title}</span>
-                                <span className="search-result-category-badge">{result.category}</span>
-                              </div>
-                            </MenuItem>
-                          ))}
-                        </MenuGroup>
-                      </MenuList>
-                    </Menu>
-                  </div>
-                )}
-              </div>
-            </Tooltip>
-        </div>
       </MastheadMain>
       <MastheadContent>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
-            {/* Settings */}
+        <style>{`
+          .pf-v6-c-masthead__logo {
+            width: auto !important;
+          }
+        `}</style>
+        <Flex
+          className={`ai-search-masthead${isSearchPaletteOpen ? ' is-expanded' : ''}`}
+          alignItems={{ default: 'alignItemsCenter' }}
+          spaceItems={{ default: 'spaceItemsSm' }}
+          flexWrap={{ default: 'nowrap' }}
+        >
+          {!isSearchPaletteOpen && <FlexItem flex={{ default: 'flex_1' }} />}
+          <FlexItem
+            className="ai-search-masthead__field"
+            flex={isSearchPaletteOpen ? { default: 'flex_1' } : undefined}
+          >
+            <div ref={aiSearchFieldRef}>
+              <SearchInput
+                ref={aiSearchInputRef}
+                value={aiSearchQuery}
+                placeholder={
+                  isSearchPaletteOpen
+                    ? 'Ask AI, jump to resources, run playbooks, search docs...'
+                    : 'Search or ask AI...'
+                }
+                aria-label="Search or ask AI"
+                aria-expanded={isSearchPaletteOpen}
+                onChange={(_event, value) => {
+                  setAiSearchQuery(value);
+                  if (!isSearchPaletteOpen) {
+                    setIsSearchPaletteOpen(true);
+                  }
+                }}
+                onFocus={() => setIsSearchPaletteOpen(true)}
+                onClear={() => setAiSearchQuery('')}
+              />
+              {!isSearchPaletteOpen && (
+                <span className="ai-search-masthead__shortcut">{getShortcutLabel()}</span>
+              )}
+            </div>
+          </FlexItem>
+          <FlexItem>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Tooltip 
               content="Settings" 
               position="bottom"
@@ -4431,10 +4246,9 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
                   <Button
                     ref={toggleRef}
                     onClick={onUtilitiesDropdownToggle}
-                    variant="control"
+                    variant="plain"
                     aria-label="Settings"
                     aria-expanded={isUtilitiesDropdownOpen}
-                    className={isUtilitiesDropdownOpen ? 'pf-m-clicked' : ''}
                   >
                     <CogIcon />
                   </Button>
@@ -4497,24 +4311,6 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
               </Dropdown>
             </Tooltip>
 
-            {/* Help Panel */}
-            <Tooltip 
-              content="Help" 
-              position="bottom"
-              {...(isDrawerExpanded ? { isVisible: false } : {})}
-            >
-              <Button
-                variant="control"
-                onClick={onDrawerToggle}
-                aria-label="Help"
-                aria-expanded={isDrawerExpanded}
-                className={isDrawerExpanded ? 'pf-m-clicked' : ''}
-              >
-                <img src={SparkleIcon} alt="" style={{ width: '16px', height: '16px', marginRight: '4px' }} />
-                Help
-              </Button>
-            </Tooltip>
-
             {/* Alerts */}
             <Tooltip 
               content="Alerts" 
@@ -4522,13 +4318,29 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
               {...(isNotificationDrawerOpen ? { isVisible: false } : {})}
             >
               <Button
-                variant="control"
+                variant="plain"
                 onClick={onNotificationDrawerToggle}
                 aria-label="Alerts"
                 aria-expanded={isNotificationDrawerOpen}
-                className={isNotificationDrawerOpen ? 'pf-m-clicked' : ''}
               >
                 <BellIcon />
+              </Button>
+            </Tooltip>
+
+            {/* Help Panel */}
+            <Tooltip 
+              content="Help" 
+              position="bottom"
+              {...(isDrawerExpanded ? { isVisible: false } : {})}
+            >
+              <Button
+                variant="plain"
+                onClick={onDrawerToggle}
+                aria-label="Help"
+                aria-expanded={isDrawerExpanded}
+              >
+                <img src={SparkleIcon} alt="" style={{ width: '16px', height: '16px', marginRight: '4px' }} />
+                Help
               </Button>
             </Tooltip>
 
@@ -4609,6 +4421,8 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
               </Dropdown>
             </Tooltip>
         </div>
+          </FlexItem>
+        </Flex>
       </MastheadContent>
     </Masthead>
   );
@@ -5161,6 +4975,18 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
           </DrawerContent>
         </Drawer>
       </Page>
+
+      <SearchPalette
+        isOpen={isSearchPaletteOpen}
+        onClose={() => {
+          setIsSearchPaletteOpen(false);
+          setAiSearchQuery('');
+        }}
+        currentPath={location.pathname}
+        query={aiSearchQuery}
+        onQueryChange={setAiSearchQuery}
+        anchorRef={aiSearchFieldRef}
+      />
       
       {/* Full-width Services Drawer under Masthead */}
       {isLogoDropdownOpen && (
