@@ -10,7 +10,7 @@ const App: React.FunctionComponent = () => {
   useDocumentTitle('AI Search Prototype');
 
   return (
-    <Router basename={process.env.NODE_ENV === 'production' ? '/HCC-cursor-seed' : ''}>
+    <Router basename={process.env.NODE_ENV === 'production' ? '/HCC-AI-Search' : ''}>
       <AppLayout>
         <AppRoutes />
       </AppLayout>
