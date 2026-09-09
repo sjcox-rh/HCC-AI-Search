@@ -31,13 +31,15 @@ Built with [PatternFly](https://www.patternfly.org/) v6 on the PatternFly React 
 
 ### Suggestions (empty state)
 
-With no query, search shows **Suggestions** based on the current page — for example CVE, storage, or subscription prompts on the homepage, or alerting and IAM prompts on those pages.
+With no query, search shows **Common actions** (direct task shortcuts such as Register RHEL host and View Subscription usage), **Suggestions** based on the current page, and recent history.
 
 ### Search and ask
 
 Typing a query returns a mixed list (no category headings). Result type is shown with an icon; hover the icon for a tooltip (landing page, page, playbook, action, cluster, host, system, group, documentation).
 
 When a query matches a known intent, an **AI answer** card appears first, with a short summary and follow-up actions (for example view hosts or generate a playbook).
+
+When results are showing, people can rate them with thumbs up or down. A down vote asks what went wrong (missing, irrelevant, inaccurate AI, or wrong page), with an optional comment, then thanks them. Feedback is mocked and is not sent anywhere.
 
 ### Result ranking
 
@@ -54,6 +56,8 @@ Covered mock catalog includes Hybrid Cloud Console, RHEL, OpenShift, Insights, a
 
 Selecting a result can navigate into the prototype and apply **filter chips** on the destination page, so a natural-language query is shown as translated console filters.
 
+If a match is **above your permission level**, it still appears in results instead of being omitted. Those rows show an **Access required** label, the **asset owner**, and a **Request access** action that opens Red Hat Access Requests with the asset and owner filled in.
+
 Playbook-style actions are mocked: they show a confirmation that a remediation playbook was queued (prototype only).
 
 ### Console chrome
@@ -67,6 +71,7 @@ These mocked intents show the AI answer and mixed-result patterns:
 - `Show me all RHEL 8 servers with critical CVEs in production`
 - `Which OpenShift clusters are running out of storage?`
 - `RHEL subscription usage`
+- `cluster-finance-pci-01` or `pci-app-server-01` to see restricted assets with request access
 
 Also try service names such as `Insights`, `OpenShift`, `Alert Manager`, or `IAM` to see landing pages, related pages, inventory, and getting-started docs.
 

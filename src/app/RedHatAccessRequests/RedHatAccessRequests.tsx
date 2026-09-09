@@ -1,5 +1,7 @@
 import * as React from 'react';
+import { useLocation } from 'react-router-dom';
 import {
+  Alert,
   Breadcrumb,
   BreadcrumbItem,
   Button,
@@ -8,6 +10,8 @@ import {
   Content,
   Flex,
   FlexItem,
+  Label,
+  LabelGroup,
   PageSection,
   Tab,
   TabTitleText,
@@ -17,6 +21,8 @@ import {
 import { ExternalLinkAltIcon, UserSecretIcon } from '@patternfly/react-icons';
 
 const RedHatAccessRequests: React.FunctionComponent = () => {
+  const location = useLocation();
+  const searchState = location.state as { searchFilters?: string[]; searchQuery?: string } | null;
   const [activeTabKey, setActiveTabKey] = React.useState<string | number>(0);
 
   const handleTabClick = (event: React.MouseEvent<HTMLElement> | React.KeyboardEvent | MouseEvent, tabIndex: string | number) => {
@@ -32,6 +38,27 @@ const RedHatAccessRequests: React.FunctionComponent = () => {
           <BreadcrumbItem isActive>Red Hat Access Requests</BreadcrumbItem>
         </Breadcrumb>
       </PageSection>
+
+      {searchState?.searchFilters && searchState.searchFilters.length > 0 && (
+        <PageSection hasBodyWrapper={false}>
+          <Alert
+            variant="info"
+            isInline
+            title={
+              searchState.searchQuery
+                ? `Access requested for “${searchState.searchQuery}”`
+                : 'Access request started from search'
+            }
+          >
+            <p>This asset matched your search but is above your permission level. The owner is listed so you can follow up if the request needs more context.</p>
+            <LabelGroup categoryName="Request details" numLabels={8}>
+              {searchState.searchFilters.map((filter) => (
+                <Label key={filter}>{filter}</Label>
+              ))}
+            </LabelGroup>
+          </Alert>
+        </PageSection>
+      )}
       
       <PageSection hasBodyWrapper={false}>
         <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>

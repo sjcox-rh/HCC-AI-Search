@@ -2,7 +2,6 @@ import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Alert,
-  AlertActionLink,
   Button,
   Card,
   CardBody,
@@ -13,6 +12,7 @@ import {
   Flex,
   FlexItem,
   Icon,
+  Label,
   Title,
   Tooltip,
 } from '@patternfly/react-core';
@@ -23,6 +23,7 @@ import {
   HomeIcon,
   LayerGroupIcon,
   ListIcon,
+  LockIcon,
   PlayIcon,
   SearchIcon,
   ServerIcon,
@@ -30,7 +31,7 @@ import {
 } from '@patternfly/react-icons';
 import SparkleIcon from '@app/bgimages/sparkle-icon.svg';
 import {
-  activeAlert,
+  commonActions,
   getContextualSuggestions,
   getShortcutLabel,
   PaletteAction,
@@ -39,6 +40,7 @@ import {
   resolveQuery,
   SearchNavTarget,
 } from './searchPaletteData';
+import { SearchFeedback } from './SearchFeedback';
 import './SearchPalette.css';
 
 export interface SearchPaletteProps {
@@ -127,6 +129,12 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
   const hasQuery = query.trim().length > 0;
   const resolution = React.useMemo(() => resolveQuery(query), [query]);
   const suggestions = React.useMemo(() => getContextualSuggestions(currentPath), [currentPath]);
+  const hasResults = Boolean(
+    resolution.answer ||
+      resolution.actions.length ||
+      resolution.entities.length ||
+      resolution.docs.length,
+  );
 
   const closeAndReset = React.useCallback(() => {
     setSelectedIndex(0);
@@ -162,7 +170,7 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
 
   const runAction = React.useCallback(
     (action: PaletteAction) => {
-      if (action.id === 'alert-storage' || action.id === 'ai-guidance') {
+      if (action.id === 'ai-guidance') {
         applyQuery('Which OpenShift clusters are running out of storage?');
         return;
       }
@@ -176,6 +184,10 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
       }
       if (action.id === 'ctx-patch') {
         applyQuery('Generate patch status report');
+        return;
+      }
+      if (action.access === 'restricted') {
+        goTo(action.requestAccess);
         return;
       }
       if (action.playbook) {
@@ -193,7 +205,7 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
     const items: FlatItem[] = [];
 
     if (!hasQuery) {
-      items.push({ id: activeAlert.id, run: () => runAction(activeAlert) });
+      commonActions.forEach((item) => items.push({ id: item.id, run: () => runAction(item) }));
       suggestions.forEach((item) => items.push({ id: item.id, run: () => runAction(item) }));
       recentEntities.forEach((item) => items.push({ id: item.id, run: () => runAction(item) }));
       return items;
@@ -257,9 +269,17 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
     }
 
     const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const isNestedControl = Boolean(
+        target?.closest('.ai-search-palette__feedback, .ai-search-palette__item-access'),
+      );
+
       if (event.key === 'Escape') {
         event.preventDefault();
         closeAndReset();
+        return;
+      }
+      if (isNestedControl) {
         return;
       }
       if (event.key === 'ArrowDown') {
@@ -306,35 +326,76 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
 
   const isActive = (id: string) => flatItems[selectedIndex]?.id === id;
 
-  const renderRow = (item: PaletteAction, kind: ResultKind) => (
-    <button
-      type="button"
-      key={item.id}
-      id={`ai-search-item-${item.id}`}
-      className={`ai-search-palette__item${isActive(item.id) ? ' is-active' : ''}`}
-      role="option"
-      aria-selected={isActive(item.id)}
-      onMouseEnter={() => {
-        const index = flatItems.findIndex((flat) => flat.id === item.id);
-        if (index >= 0) {
-          setSelectedIndex(index);
+  const renderRow = (item: PaletteAction, kind: ResultKind) => {
+    const isRestricted = item.access === 'restricted';
+    const RowTag = isRestricted ? 'div' : 'button';
+
+    return (
+      <RowTag
+        {...(!isRestricted ? { type: 'button' as const } : {})}
+        key={item.id}
+        id={`ai-search-item-${item.id}`}
+        className={`ai-search-palette__item${isActive(item.id) ? ' is-active' : ''}${
+          isRestricted ? ' is-restricted' : ''
+        }`}
+        role="option"
+        aria-selected={isActive(item.id)}
+        aria-label={
+          isRestricted
+            ? `${item.title}, access required, owned by ${item.owner || 'unknown'}`
+            : undefined
         }
-      }}
-      onClick={() => runAction(item)}
-    >
-      <Tooltip content={resultTypeLabel[kind]} position="left">
-        <span className="ai-search-palette__type" aria-label={resultTypeLabel[kind]}>
-          <Icon status={item.status}>{resultTypeIcon[kind]}</Icon>
+        onMouseEnter={() => {
+          const index = flatItems.findIndex((flat) => flat.id === item.id);
+          if (index >= 0) {
+            setSelectedIndex(index);
+          }
+        }}
+        onClick={() => runAction(item)}
+      >
+        <Tooltip
+          content={isRestricted ? `${resultTypeLabel[kind]} · Access required` : resultTypeLabel[kind]}
+          position="left"
+        >
+          <span
+            className="ai-search-palette__type"
+            aria-label={isRestricted ? `${resultTypeLabel[kind]}, access required` : resultTypeLabel[kind]}
+          >
+            <Icon status={isRestricted ? 'warning' : item.status}>
+              {isRestricted ? <LockIcon /> : resultTypeIcon[kind]}
+            </Icon>
+          </span>
+        </Tooltip>
+        <span className="ai-search-palette__item-body">
+          <span className="ai-search-palette__item-title">{item.title}</span>
+          {(item.description || item.meta) && (
+            <span className="ai-search-palette__item-meta">{item.meta || item.description}</span>
+          )}
+          {isRestricted && item.owner && (
+            <span className="ai-search-palette__item-meta">Owner: {item.owner}</span>
+          )}
         </span>
-      </Tooltip>
-      <span className="ai-search-palette__item-body">
-        <span className="ai-search-palette__item-title">{item.title}</span>
-        {(item.description || item.meta) && (
-          <span className="ai-search-palette__item-meta">{item.meta || item.description}</span>
+        {isRestricted && (
+          <span className="ai-search-palette__item-access">
+            <Label status="warning" isCompact>
+              Access required
+            </Label>
+            <Button
+              variant="link"
+              isInline
+              size="sm"
+              onClick={(event) => {
+                event.stopPropagation();
+                goTo(item.requestAccess);
+              }}
+            >
+              Request access
+            </Button>
+          </span>
         )}
-      </span>
-    </button>
-  );
+      </RowTag>
+    );
+  };
 
   const sectionTitle = (text: string) => (
     <Title headingLevel="h3" size="md" className="ai-search-palette__section-title">
@@ -370,17 +431,8 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
           <div role="listbox" aria-label="Search results">
             {!hasQuery && (
               <>
-                {sectionTitle('Active alerts')}
-                <Alert
-                  variant="warning"
-                  isInline
-                  title={activeAlert.title}
-                  actionLinks={
-                    <AlertActionLink onClick={() => runAction(activeAlert)}>Resolve with AI Guidance</AlertActionLink>
-                  }
-                >
-                  {activeAlert.description}
-                </Alert>
+                {sectionTitle('Common actions')}
+                {commonActions.map((item) => renderRow(item, kindForItem(item)))}
 
                 {sectionTitle('Suggestions')}
                 {suggestions.map((item) => renderRow(item, 'suggestion'))}
@@ -445,6 +497,12 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
               </>
             )}
 
+            {hasQuery && !hasResults && (
+              <Content className="ai-search-palette__empty">
+                <p>No matching results. Try another query, or tell us what you expected below.</p>
+              </Content>
+            )}
+
             {hasQuery && (
               <>
                 {resolution.actions.map((item) => renderRow(item, kindForItem(item)))}
@@ -455,6 +513,7 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
           </div>
         </CardBody>
         <CardFooter>
+          {hasQuery && <SearchFeedback query={query.trim()} />}
           <div className="ai-search-palette__footer">
             <span>
               <span className="ai-search-palette__kbd">↑↓</span> Navigate

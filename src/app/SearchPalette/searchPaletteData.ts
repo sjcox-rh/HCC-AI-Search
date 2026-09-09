@@ -25,6 +25,9 @@ export interface PaletteAction {
   nav?: SearchNavTarget;
   playbook?: boolean;
   kind?: PaletteResultKind;
+  access?: 'granted' | 'restricted';
+  owner?: string;
+  requestAccess?: SearchNavTarget;
 }
 
 export interface AiAnswer {
@@ -147,16 +150,55 @@ export const recentEntities: PaletteAction[] = [
   },
 ];
 
-export const activeAlert: PaletteAction = {
-  id: 'alert-storage',
-  title: 'Storage warning on cluster-01 → Resolve with AI Guidance',
-  description: 'Cluster storage is above 90%. Assumed in-scope for this account.',
-  status: 'warning',
-};
+export const commonActions: PaletteAction[] = [
+  {
+    id: 'common-register-rhel',
+    title: 'Register RHEL host',
+    meta: 'Start system registration',
+    kind: 'action',
+    nav: { route: '/overview', filters: ['RHEL', 'Register host'] },
+  },
+  {
+    id: 'common-subscription-usage',
+    title: 'View Subscription usage',
+    meta: 'Open organization usage',
+    kind: 'action',
+    nav: { route: '/overview', filters: ['Subscriptions', 'RHEL usage'] },
+  },
+  {
+    id: 'common-invite-user',
+    title: 'Invite a user',
+    meta: 'Identity & Access',
+    kind: 'action',
+    nav: { route: '/users' },
+  },
+  {
+    id: 'common-view-alerts',
+    title: 'View alerts',
+    meta: 'Alert Manager',
+    kind: 'action',
+    nav: { route: '/alert-manager' },
+  },
+];
+
+const requestAccessFor = (title: string, owner: string): SearchNavTarget => ({
+  route: '/red-hat-access-requests',
+  filters: [`Asset: ${title}`, `Owner: ${owner}`],
+  query: title,
+});
+
+const withRestrictedAccess = (item: PaletteAction, owner: string): PaletteAction => ({
+  ...item,
+  access: 'restricted',
+  owner,
+  status: item.status || 'warning',
+  nav: undefined,
+  requestAccess: requestAccessFor(item.title, owner),
+});
 
 const cveAnswer: AiAnswer = {
   summary:
-    'Insights Advisor detected 4 hosts vulnerable to CVE-2024-XXXX. These are RHEL 8 systems in production. Results are limited to resources this account can access.',
+    'Insights Advisor found 4 hosts you can access with CVE-2024-XXXX. 2 additional matching hosts are in a restricted workspace. Those assets stay in results so you can request access from the owner instead of being left without context.',
   actions: [
     {
       id: 'view-hosts',
@@ -169,6 +211,12 @@ const cveAnswer: AiAnswer = {
       },
     },
     {
+      id: 'request-restricted-hosts',
+      label: 'Request access to restricted hosts',
+      variant: 'secondary',
+      nav: requestAccessFor('pci-app-server-01', 'Payments SRE'),
+    },
+    {
       id: 'gen-playbook',
       label: 'Generate Remediation Playbook',
       variant: 'secondary',
@@ -179,13 +227,19 @@ const cveAnswer: AiAnswer = {
 
 const storageAnswer: AiAnswer = {
   summary:
-    'cluster-prod-openshift-01 is at 93% persistent volume usage in us-east-1. Lightspeed recommends expanding storage or running a cleanup playbook.',
+    'cluster-prod-openshift-01 is at 93% persistent volume usage in us-east-1. A second matching cluster, cluster-finance-pci-01, is above your permission level. Request access from Finance platform team to include it.',
   actions: [
     {
       id: 'open-cluster',
       label: 'Open cluster',
       variant: 'primary',
       nav: { route: '/overview', filters: ['Cluster: cluster-prod-openshift-01', 'Storage > 90%'] },
+    },
+    {
+      id: 'request-storage-cluster',
+      label: 'Request access to PCI cluster',
+      variant: 'secondary',
+      nav: requestAccessFor('cluster-finance-pci-01', 'Finance platform team'),
     },
     {
       id: 'ai-guidance',
@@ -469,6 +523,19 @@ const inventoryRecords: InventoryRecord[] = [
     },
   },
   {
+    serviceIds: ['openshift', 'hcc'],
+    tags: ['openshift', 'cluster', 'production', 'pci', 'finance', 'restricted'],
+    item: withRestrictedAccess(
+      {
+        id: 'inv-cluster-pci',
+        title: 'cluster-finance-pci-01',
+        meta: 'OpenShift 4.16 · PCI workspace',
+        kind: 'cluster',
+      },
+      'Finance platform team',
+    ),
+  },
+  {
     serviceIds: ['rhel', 'insights', 'hcc'],
     tags: ['rhel', 'host', 'server', 'cve', 'production', 'insights'],
     item: {
@@ -502,6 +569,19 @@ const inventoryRecords: InventoryRecord[] = [
       kind: 'host',
       nav: { route: '/overview', filters: ['Host: db-server-07'] },
     },
+  },
+  {
+    serviceIds: ['rhel', 'insights'],
+    tags: ['rhel', 'host', 'server', 'cve', 'production', 'pci', 'restricted'],
+    item: withRestrictedAccess(
+      {
+        id: 'inv-host-pci',
+        title: 'pci-app-server-01',
+        meta: 'RHEL 8.10 · Production · Restricted workspace',
+        kind: 'host',
+      },
+      'Payments SRE',
+    ),
   },
   {
     serviceIds: ['rhel', 'insights', 'subscriptions'],
@@ -601,6 +681,20 @@ const inventoryRecords: InventoryRecord[] = [
       playbook: true,
       kind: 'playbook',
     },
+  },
+  {
+    serviceIds: ['openshift', 'automation'],
+    tags: ['openshift', 'playbook', 'secrets', 'production', 'ansible', 'restricted'],
+    item: withRestrictedAccess(
+      {
+        id: 'inv-pb-secrets',
+        title: 'Rotate production cluster secrets',
+        description: 'Ansible playbook · cluster-admin required',
+        playbook: true,
+        kind: 'playbook',
+      },
+      'SRE on-call',
+    ),
   },
 ];
 
@@ -709,6 +803,11 @@ const dedupeById = (items: PaletteAction[]): PaletteAction[] => {
   });
 };
 
+const grantedFirst = (items: PaletteAction[]): PaletteAction[] => [
+  ...items.filter((item) => item.access !== 'restricted'),
+  ...items.filter((item) => item.access === 'restricted'),
+];
+
 export const resolveQuery = (query: string): SearchResolution => {
   const q = query.trim().toLowerCase();
 
@@ -736,12 +835,15 @@ export const resolveQuery = (query: string): SearchResolution => {
     intent = {
       answer: cveAnswer,
       actions: [
-        {
-          id: 'act-terminal',
-          title: "Launch Web Console terminal for 'prod-us-east-1'",
-          description: 'Inline action · assumed you have cluster-admin',
-          kind: 'action',
-        },
+        withRestrictedAccess(
+          {
+            id: 'act-terminal',
+            title: "Launch Web Console terminal for 'prod-us-east-1'",
+            description: 'Inline action · cluster-admin required',
+            kind: 'action',
+          },
+          'Cluster administrators',
+        ),
         {
           id: 'act-playbook',
           title: 'Trigger Ansible Playbook: Patch RHEL 9 Glitch',
@@ -767,6 +869,15 @@ export const resolveQuery = (query: string): SearchResolution => {
           kind: 'host',
           nav: { route: '/overview', filters: ['Host: app-server-04', 'Critical CVE'] },
         },
+        withRestrictedAccess(
+          {
+            id: 'ent-host-pci',
+            title: 'pci-app-server-01',
+            meta: 'RHEL 8.10 · Production · Restricted workspace',
+            kind: 'host',
+          },
+          'Payments SRE',
+        ),
       ],
       docs: [
         {
@@ -782,11 +893,14 @@ export const resolveQuery = (query: string): SearchResolution => {
     intent = {
       answer: storageAnswer,
       actions: [
-        {
-          id: 'act-terminal-storage',
-          title: "Launch Web Console terminal for 'prod-us-east-1'",
-          kind: 'action',
-        },
+        withRestrictedAccess(
+          {
+            id: 'act-terminal-storage',
+            title: "Launch Web Console terminal for 'prod-us-east-1'",
+            kind: 'action',
+          },
+          'Cluster administrators',
+        ),
         {
           id: 'act-expand',
           title: 'Open storage capacity dashboard',
@@ -804,6 +918,15 @@ export const resolveQuery = (query: string): SearchResolution => {
           kind: 'cluster',
           nav: { route: '/overview', filters: ['Cluster: cluster-prod-openshift-01'] },
         },
+        withRestrictedAccess(
+          {
+            id: 'ent-cluster-pci-storage',
+            title: 'cluster-finance-pci-01',
+            meta: 'OpenShift 4.16 · PCI workspace',
+            kind: 'cluster',
+          },
+          'Finance platform team',
+        ),
       ],
       docs: [
         {
@@ -836,8 +959,8 @@ export const resolveQuery = (query: string): SearchResolution => {
   }
 
   const serviceActions = service ? [service.landing, ...service.related] : [];
-  const actions = dedupeById([...serviceActions, ...inventory.playbooks, ...intent.actions]);
-  const entities = dedupeById([...inventory.entities, ...intent.entities]);
+  const actions = grantedFirst(dedupeById([...serviceActions, ...inventory.playbooks, ...intent.actions]));
+  const entities = grantedFirst(dedupeById([...inventory.entities, ...intent.entities]));
   const docs = dedupeById([...gettingStarted, ...extraDocs, ...intent.docs]);
 
   if (!intent.answer && actions.length === 0 && entities.length === 0 && docs.length === 0) {
