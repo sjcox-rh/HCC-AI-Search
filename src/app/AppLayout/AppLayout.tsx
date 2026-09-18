@@ -4168,16 +4168,6 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   const masthead = (
     <Masthead>
       <MastheadMain>
-        <MastheadToggle>
-          <MenuToggle
-            variant="plain"
-            onClick={() => setIsLogoDropdownOpen(!isLogoDropdownOpen)}
-            isExpanded={isLogoDropdownOpen}
-            aria-label="Red Hat Hybrid Cloud Console menu"
-          >
-            <ThIcon />
-          </MenuToggle>
-        </MastheadToggle>
         <MastheadBrand data-codemods>
           <MastheadLogo data-codemods onClick={() => navigate('/')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '16px', marginLeft: '8px' }}>
             <img

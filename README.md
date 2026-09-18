@@ -31,7 +31,7 @@ Built with [PatternFly](https://www.patternfly.org/) v6 on the PatternFly React 
 
 ### Suggestions (empty state)
 
-With no query, search shows **Common actions** (direct task shortcuts such as Register RHEL host and View Subscription usage), **Suggestions** based on the current page, and recent history.
+With no query, search shows the **Platforms and Services** list from the console services menu as its own section, plus **Common actions**, **Suggestions**, and recent history. Clicking a platform or service keeps the empty search dropdown open and shows that item’s catalog (grouped links, descriptions, and favorites), the same way the All Services menu does. Typing a query is what hides this empty state and shows search results.
 
 ### Search and ask
 

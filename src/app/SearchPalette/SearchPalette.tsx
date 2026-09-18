@@ -9,14 +9,19 @@ import {
   CardHeader,
   CardTitle,
   Content,
+  Divider,
   Flex,
   FlexItem,
   Icon,
   Label,
   Title,
   Tooltip,
+  Split,
+  SplitItem,
 } from '@patternfly/react-core';
 import {
+  AngleDownIcon,
+  AngleRightIcon,
   BookOpenIcon,
   ClusterIcon,
   HddIcon,
@@ -41,6 +46,12 @@ import {
   SearchNavTarget,
 } from './searchPaletteData';
 import { SearchFeedback } from './SearchFeedback';
+import {
+  DEFAULT_SERVICE_ID,
+  getSelectedService,
+  SearchServiceDetail,
+  SearchServicesPanel,
+} from './SearchServicesPanel';
 import './SearchPalette.css';
 
 export interface SearchPaletteProps {
@@ -54,6 +65,8 @@ export interface SearchPaletteProps {
 
 interface FlatItem {
   id: string;
+  type: 'row' | 'group-header';
+  groupKey?: ResultGroupKey;
   run: () => void;
 }
 
@@ -70,6 +83,42 @@ const resultTypeLabel: Record<ResultKind, string> = {
   system: 'System',
   group: 'Group',
   suggestion: 'Suggestion',
+};
+
+type ResultGroupKey =
+  | 'services'
+  | 'inventories'
+  | 'learning'
+  | 'playbooks';
+
+const resultGroupLabel: Record<ResultGroupKey, string> = {
+  services: 'Services & pages',
+  inventories: 'Inventories',
+  learning: 'Learning resources',
+  playbooks: 'Playbooks & actions',
+};
+
+const resultGroupOrder: ResultGroupKey[] = ['services', 'inventories', 'learning', 'playbooks'];
+
+const kindToGroup = (kind: ResultKind): ResultGroupKey => {
+  switch (kind) {
+    case 'service':
+    case 'page':
+      return 'services';
+    case 'cluster':
+    case 'host':
+    case 'system':
+    case 'group':
+      return 'inventories';
+    case 'documentation':
+      return 'learning';
+    case 'playbook':
+    case 'action':
+    case 'suggestion':
+      return 'playbooks';
+    default:
+      return 'services';
+  }
 };
 
 const resultTypeIcon: Record<ResultKind, React.ReactNode> = {
@@ -125,6 +174,35 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
   const [selectedIndex, setSelectedIndex] = React.useState(0);
   const [playbookMessage, setPlaybookMessage] = React.useState<string | null>(null);
   const [panelStyle, setPanelStyle] = React.useState<React.CSSProperties>({});
+  const [selectedServiceId, setSelectedServiceId] = React.useState(DEFAULT_SERVICE_ID);
+  const [favoritedItems, setFavoritedItems] = React.useState<Set<string>>(new Set());
+  const [collapsedGroups, setCollapsedGroups] = React.useState<Set<ResultGroupKey>>(new Set());
+  const selectedService = getSelectedService(selectedServiceId);
+  const showSearchShortcuts = selectedServiceId === DEFAULT_SERVICE_ID && favoritedItems.size === 0;
+
+  const toggleGroup = React.useCallback((key: ResultGroupKey) => {
+    setCollapsedGroups((current) => {
+      const next = new Set(current);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }, []);
+
+  const toggleFavorite = React.useCallback((id: string) => {
+    setFavoritedItems((current) => {
+      const next = new Set(current);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }, []);
 
   const hasQuery = query.trim().length > 0;
   const resolution = React.useMemo(() => resolveQuery(query), [query]);
@@ -139,6 +217,7 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
   const closeAndReset = React.useCallback(() => {
     setSelectedIndex(0);
     setPlaybookMessage(null);
+    setSelectedServiceId(DEFAULT_SERVICE_ID);
     onClose();
   }, [onClose]);
 
@@ -201,19 +280,47 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
     [applyQuery, goTo, runPlaybook],
   );
 
+  const resultGroups = React.useMemo(() => {
+    if (!hasQuery) return [];
+
+    const taggedRows: { item: PaletteAction; kind: ResultKind }[] = [
+      ...resolution.actions.map((item) => ({ item, kind: kindForItem(item) })),
+      ...resolution.entities.map((item) => ({ item, kind: entityKind(item) })),
+      ...resolution.docs.map((item) => ({ item, kind: (item.kind || 'documentation') as ResultKind })),
+    ];
+
+    const groups: Record<ResultGroupKey, { item: PaletteAction; kind: ResultKind }[]> = {
+      services: [],
+      inventories: [],
+      learning: [],
+      playbooks: [],
+    };
+
+    taggedRows.forEach((row) => {
+      groups[kindToGroup(row.kind)].push(row);
+    });
+
+    return resultGroupOrder
+      .filter((key) => groups[key].length > 0)
+      .map((key) => ({ key, label: resultGroupLabel[key], rows: groups[key] }));
+  }, [hasQuery, resolution]);
+
   const flatItems = React.useMemo((): FlatItem[] => {
     const items: FlatItem[] = [];
 
     if (!hasQuery) {
-      commonActions.forEach((item) => items.push({ id: item.id, run: () => runAction(item) }));
-      suggestions.forEach((item) => items.push({ id: item.id, run: () => runAction(item) }));
-      recentEntities.forEach((item) => items.push({ id: item.id, run: () => runAction(item) }));
+      if (showSearchShortcuts) {
+        commonActions.forEach((item) => items.push({ id: item.id, type: 'row', run: () => runAction(item) }));
+        suggestions.forEach((item) => items.push({ id: item.id, type: 'row', run: () => runAction(item) }));
+        recentEntities.forEach((item) => items.push({ id: item.id, type: 'row', run: () => runAction(item) }));
+      }
       return items;
     }
 
     resolution.answer?.actions.forEach((action) => {
       items.push({
         id: action.id,
+        type: 'row',
         run: () => {
           if (action.playbook) {
             runPlaybook();
@@ -225,15 +332,32 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
         },
       });
     });
-    resolution.actions.forEach((item) => items.push({ id: item.id, run: () => runAction(item) }));
-    resolution.entities.forEach((item) => items.push({ id: item.id, run: () => runAction(item) }));
-    resolution.docs.forEach((item) => items.push({ id: item.id, run: () => runAction(item) }));
+
+    resultGroups.forEach((group) => {
+      items.push({
+        id: `group-header-${group.key}`,
+        type: 'group-header',
+        groupKey: group.key,
+        run: () => toggleGroup(group.key),
+      });
+      if (!collapsedGroups.has(group.key)) {
+        group.rows.forEach(({ item }) => items.push({ id: item.id, type: 'row', run: () => runAction(item) }));
+      }
+    });
+
     return items;
-  }, [hasQuery, resolution, runAction, runPlaybook, goTo, suggestions]);
+  }, [hasQuery, resolution, runAction, runPlaybook, goTo, suggestions, showSearchShortcuts, resultGroups, collapsedGroups, toggleGroup]);
 
   React.useEffect(() => {
     setSelectedIndex(0);
-  }, [query, isOpen]);
+    setCollapsedGroups(new Set());
+  }, [query, isOpen, selectedServiceId]);
+
+  React.useEffect(() => {
+    if (!isOpen || hasQuery) {
+      setSelectedServiceId(DEFAULT_SERVICE_ID);
+    }
+  }, [isOpen, hasQuery]);
 
   React.useEffect(() => {
     if (!isOpen) {
@@ -271,7 +395,9 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
       const isNestedControl = Boolean(
-        target?.closest('.ai-search-palette__feedback, .ai-search-palette__item-access'),
+        target?.closest(
+          '.ai-search-palette__feedback, .ai-search-palette__item-access, .ai-search-palette__services, .ai-search-palette__service-detail',
+        ),
       );
 
       if (event.key === 'Escape') {
@@ -292,6 +418,31 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
         setSelectedIndex((current) =>
           flatItems.length === 0 ? 0 : (current - 1 + flatItems.length) % flatItems.length,
         );
+        return;
+      }
+      if (event.key === 'ArrowLeft') {
+        const selected = flatItems[selectedIndex];
+        if (selected?.type === 'group-header' && selected.groupKey && !collapsedGroups.has(selected.groupKey)) {
+          event.preventDefault();
+          toggleGroup(selected.groupKey);
+        }
+        return;
+      }
+      if (event.key === 'ArrowRight') {
+        const selected = flatItems[selectedIndex];
+        if (selected?.type === 'group-header' && selected.groupKey && collapsedGroups.has(selected.groupKey)) {
+          event.preventDefault();
+          toggleGroup(selected.groupKey);
+        }
+        return;
+      }
+      const isInInput = target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA';
+      if (event.key === ' ' && !isInInput) {
+        const selected = flatItems[selectedIndex];
+        if (selected?.type === 'group-header') {
+          event.preventDefault();
+          selected.run();
+        }
         return;
       }
       if (event.key === 'Enter') {
@@ -361,7 +512,7 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
             className="ai-search-palette__type"
             aria-label={isRestricted ? `${resultTypeLabel[kind]}, access required` : resultTypeLabel[kind]}
           >
-            <Icon status={isRestricted ? 'warning' : item.status}>
+            <Icon {...(isRestricted ? { status: 'warning' as const } : {})}>
               {isRestricted ? <LockIcon /> : resultTypeIcon[kind]}
             </Icon>
           </span>
@@ -412,7 +563,7 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
       <div className="ai-search-palette__backdrop" />
       <div ref={panelRef} className="ai-search-palette__panel" style={panelStyle}>
       <Card
-        className="ai-search-palette__dropdown"
+        className={`ai-search-palette__dropdown${!hasQuery ? ' is-zero-state' : ''}`}
         isCompact
         role="dialog"
         aria-label="Search results"
@@ -428,23 +579,46 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
             </Flex>
           )}
 
+          {!hasQuery && (
+            <Split className="ai-search-palette__zero-state">
+              <SplitItem className="ai-search-palette__services">
+                <SearchServicesPanel
+                  selectedItemId={selectedServiceId}
+                  onSelectService={setSelectedServiceId}
+                  onNavigate={goTo}
+                />
+              </SplitItem>
+              <SplitItem isFilled className="ai-search-palette__zero-results">
+                {selectedService && !showSearchShortcuts ? (
+                  <div className="ai-search-palette__service-detail">
+                    <SearchServiceDetail
+                      item={selectedService}
+                      favoritedItems={favoritedItems}
+                      onToggleFavorite={toggleFavorite}
+                      onNavigate={goTo}
+                    />
+                  </div>
+                ) : (
+                  <div role="listbox" aria-label="Search suggestions">
+                    {sectionTitle('Common actions')}
+                    {commonActions.map((item) => renderRow(item, kindForItem(item)))}
+
+                    {sectionTitle('Suggestions')}
+                    {suggestions.map((item) => renderRow(item, 'suggestion'))}
+
+                    {sectionTitle('Recent history')}
+                    {recentEntities.map((item) => renderRow(item, entityKind(item)))}
+                  </div>
+                )}
+              </SplitItem>
+            </Split>
+          )}
+
+          {hasQuery && (
           <div role="listbox" aria-label="Search results">
-            {!hasQuery && (
+            {resolution.answer && (
               <>
-                {sectionTitle('Common actions')}
-                {commonActions.map((item) => renderRow(item, kindForItem(item)))}
-
-                {sectionTitle('Suggestions')}
-                {suggestions.map((item) => renderRow(item, 'suggestion'))}
-
-                {sectionTitle('Recent history')}
-                {recentEntities.map((item) => renderRow(item, entityKind(item)))}
-              </>
-            )}
-
-            {hasQuery && resolution.answer && (
-              <>
-                {sectionTitle('Direct AI answer')}
+                {sectionTitle('AI Answer')}
                 <Card isCompact>
                   <CardHeader>
                     <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
@@ -497,23 +671,45 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
               </>
             )}
 
-            {hasQuery && !hasResults && (
+            {!hasResults && (
               <Content className="ai-search-palette__empty">
                 <p>No matching results. Try another query, or tell us what you expected below.</p>
               </Content>
             )}
 
-            {hasQuery && (
-              <>
-                {resolution.actions.map((item) => renderRow(item, kindForItem(item)))}
-                {resolution.entities.map((item) => renderRow(item, entityKind(item)))}
-                {resolution.docs.map((item) => renderRow(item, item.kind || 'documentation'))}
-              </>
-            )}
+            {resultGroups.map((group) => {
+              const isCollapsed = collapsedGroups.has(group.key);
+              const headerId = `group-header-${group.key}`;
+              return (
+                <React.Fragment key={group.key}>
+                  <button
+                    type="button"
+                    id={`ai-search-item-${headerId}`}
+                    className={`ai-search-palette__group-header${isActive(headerId) ? ' is-active' : ''}`}
+                    aria-expanded={!isCollapsed}
+                    onClick={() => toggleGroup(group.key)}
+                    onMouseEnter={() => {
+                      const index = flatItems.findIndex((flat) => flat.id === headerId);
+                      if (index >= 0) setSelectedIndex(index);
+                    }}
+                  >
+                    <Icon size="sm">
+                      {isCollapsed ? <AngleRightIcon /> : <AngleDownIcon />}
+                    </Icon>
+                    <span className="ai-search-palette__group-header-text">
+                      {group.label} ({group.rows.length})
+                    </span>
+                  </button>
+                  {!isCollapsed && group.rows.map(({ item, kind }) => renderRow(item, kind))}
+                </React.Fragment>
+              );
+            })}
           </div>
+          )}
         </CardBody>
         <CardFooter>
           {hasQuery && <SearchFeedback query={query.trim()} />}
+          {!hasQuery && <Divider />}
           <div className="ai-search-palette__footer">
             <span>
               <span className="ai-search-palette__kbd">↑↓</span> Navigate

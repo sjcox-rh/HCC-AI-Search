@@ -181,6 +181,177 @@ export const commonActions: PaletteAction[] = [
   },
 ];
 
+export type ServiceNavGroupId = 'Platforms' | 'Services';
+
+export interface ServiceNavItem {
+  id: string;
+  name: string;
+  group: ServiceNavGroupId;
+  icon: 'wrench' | 'server' | 'cube' | 'star' | 'brain' | 'bell' | 'rocket' | 'users' | 'list' | 'eye' | 'play' | 'shield' | 'credit-card';
+  isLink?: boolean;
+  url?: string;
+  description?: string;
+  details?: string;
+  features?: string[];
+}
+
+export const serviceNavItems: ServiceNavItem[] = [
+  {
+    id: 'ansible',
+    name: 'Red Hat Ansible Automation Platform',
+    group: 'Platforms',
+    icon: 'wrench',
+    isLink: true,
+    url: '/ansible-automation-platform',
+  },
+  {
+    id: 'rhel',
+    name: 'Red Hat Enterprise Linux',
+    group: 'Platforms',
+    icon: 'server',
+    isLink: true,
+    url: '/red-hat-enterprise-linux',
+  },
+  {
+    id: 'openshift',
+    name: 'Red Hat OpenShift',
+    group: 'Platforms',
+    icon: 'cube',
+    isLink: true,
+    url: '/red-hat-openshift',
+  },
+  {
+    id: 'my-favorite-services',
+    name: 'My Favorite Services',
+    group: 'Services',
+    icon: 'star',
+    description: 'Quick access to your most-used services',
+    details:
+      'Access your frequently used and bookmarked services in one convenient location. Customize your dashboard with the services you use most often to improve your workflow efficiency.',
+    features: ['Quick Access', 'Custom Dashboard', 'Service Bookmarks', 'Usage Analytics'],
+  },
+  {
+    id: 'ai-ml',
+    name: 'AI/ML',
+    group: 'Services',
+    icon: 'brain',
+    description: 'Artificial intelligence and machine learning services',
+    details:
+      'Build, train, and deploy machine learning models with enterprise-grade AI/ML platforms. Access GPU-accelerated computing, automated model training, and MLOps pipelines.',
+    features: ['Model Training', 'GPU Computing', 'MLOps Pipelines', 'Data Science Workbenches'],
+  },
+  {
+    id: 'alerting-data-integrations',
+    name: 'Alerting & Data Integrations',
+    group: 'Services',
+    icon: 'bell',
+    description: 'Monitoring alerts and data pipeline management',
+    details:
+      'Configure intelligent alerting systems and manage data integration workflows across your hybrid cloud infrastructure with real-time monitoring and automated responses.',
+    features: ['Real-time Alerts', 'Data Pipelines', 'Integration Workflows', 'Event Processing'],
+  },
+  {
+    id: 'automation',
+    name: 'Automation',
+    group: 'Services',
+    icon: 'wrench',
+    description: 'Infrastructure and application automation',
+    details:
+      'Automate repetitive tasks, configuration management, and deployment processes with comprehensive automation tools and workflow orchestration.',
+    features: ['Task Automation', 'Configuration Management', 'Workflow Orchestration', 'Process Optimization'],
+  },
+  {
+    id: 'containers',
+    name: 'Containers',
+    group: 'Services',
+    icon: 'cube',
+    description: 'Container management and orchestration',
+    details:
+      'Deploy, manage, and scale containerized applications with enterprise Kubernetes platforms, container registries, and orchestration tools.',
+    features: ['Container Orchestration', 'Registry Management', 'Application Scaling', 'Service Mesh'],
+  },
+  {
+    id: 'deploy',
+    name: 'Deploy',
+    group: 'Services',
+    icon: 'rocket',
+    description: 'Application deployment and delivery',
+    details:
+      'Streamline application deployment with CI/CD pipelines, automated testing, and progressive delivery strategies across multiple environments.',
+    features: ['CI/CD Pipelines', 'Automated Testing', 'Progressive Delivery', 'Environment Management'],
+  },
+  {
+    id: 'identity-access-mgmt',
+    name: 'Identity & Access Management',
+    group: 'Services',
+    icon: 'users',
+    description: 'User authentication and authorization',
+    details:
+      'Secure your applications with comprehensive identity management, single sign-on, multi-factor authentication, and role-based access controls.',
+    features: ['Single Sign-On', 'Multi-Factor Auth', 'Role-Based Access', 'Identity Federation'],
+  },
+  {
+    id: 'inventories',
+    name: 'Inventories',
+    group: 'Services',
+    icon: 'list',
+    description: 'Asset and resource inventory management',
+    details:
+      'Track and manage your IT assets, infrastructure resources, and application inventories with automated discovery and real-time updates.',
+    features: ['Asset Discovery', 'Resource Tracking', 'Inventory Updates', 'Compliance Reporting'],
+  },
+  {
+    id: 'observability-monitoring',
+    name: 'Observability & Monitoring',
+    group: 'Services',
+    icon: 'eye',
+    description: 'System monitoring and observability',
+    details:
+      'Gain deep insights into your applications and infrastructure with comprehensive monitoring, logging, tracing, and performance analytics.',
+    features: ['Application Monitoring', 'Infrastructure Metrics', 'Distributed Tracing', 'Log Analytics'],
+  },
+  {
+    id: 'operators',
+    name: 'Operators',
+    group: 'Services',
+    icon: 'play',
+    description: 'Kubernetes operators and lifecycle management',
+    details:
+      'Deploy and manage complex applications on Kubernetes with operators that automate installation, updates, and day-2 operations.',
+    features: ['Operator Lifecycle', 'Application Management', 'Automated Updates', 'Cluster Operations'],
+  },
+  {
+    id: 'security',
+    name: 'Security',
+    group: 'Services',
+    icon: 'shield',
+    description: 'Security scanning and threat protection',
+    details:
+      'Protect your infrastructure with advanced security scanning, vulnerability management, threat detection, and compliance monitoring.',
+    features: ['Vulnerability Scanning', 'Threat Detection', 'Security Policies', 'Compliance Monitoring'],
+  },
+  {
+    id: 'subscriptions-spend',
+    name: 'Subscriptions & Spend',
+    group: 'Services',
+    icon: 'credit-card',
+    description: 'Subscription management and cost optimization',
+    details:
+      'Manage subscriptions, track usage, optimize costs, and analyze spending patterns across your Red Hat services and cloud resources.',
+    features: ['Subscription Tracking', 'Cost Analysis', 'Usage Optimization', 'Spend Management'],
+  },
+  {
+    id: 'system-configuration',
+    name: 'System Configuration',
+    group: 'Services',
+    icon: 'server',
+    description: 'System settings and configuration management',
+    details:
+      'Configure and manage system settings, infrastructure parameters, and application configurations with centralized management tools.',
+    features: ['Configuration Management', 'System Settings', 'Parameter Tuning', 'Change Tracking'],
+  },
+];
+
 const requestAccessFor = (title: string, owner: string): SearchNavTarget => ({
   route: '/red-hat-access-requests',
   filters: [`Asset: ${title}`, `Owner: ${owner}`],
@@ -720,7 +891,7 @@ const recordMatches = (record: InventoryRecord, query: string, service?: Searcha
   const haystack = normalize(
     [record.item.title, record.item.meta, record.item.description, ...(record.tags || [])].join(' '),
   );
-  const tokens = q.split(' ').filter((token) => token.length >= 3);
+  const tokens = q.split(' ').filter((token) => token.length > 0);
   return tokens.some((token) => haystack.includes(token));
 };
 
@@ -737,6 +908,7 @@ const findRelevantInventory = (
 
 const findBestService = (query: string): SearchableService | undefined => {
   const q = normalize(query);
+  if (!q) return undefined;
   let best: { service: SearchableService; score: number } | undefined;
 
   searchableServices.forEach((service) => {
@@ -751,7 +923,9 @@ const findBestService = (query: string): SearchableService | undefined => {
         score = n.length + 20;
       } else if (q.includes(n)) {
         score = n.length + 10;
-      } else if (n.includes(q) && q.length >= 3) {
+      } else if (n.includes(q)) {
+        score = q.length;
+      } else if (n.startsWith(q)) {
         score = q.length;
       }
       if (score > 0 && (!best || score > best.score)) {
@@ -761,6 +935,19 @@ const findBestService = (query: string): SearchableService | undefined => {
   });
 
   return best?.service;
+};
+
+const findAllMatchingServices = (query: string): SearchableService[] => {
+  const q = normalize(query);
+  if (!q) return [];
+
+  return searchableServices.filter((service) => {
+    const names = [service.name, ...service.aliases];
+    return names.some((name) => {
+      const n = normalize(name);
+      return n && (n.includes(q) || n.startsWith(q) || q.includes(n));
+    });
+  });
 };
 
 const findGettingStartedDocs = (query: string, service?: SearchableService): PaletteAction[] => {
@@ -773,9 +960,7 @@ const findGettingStartedDocs = (query: string, service?: SearchableService): Pal
     }
     return terms.some((term) => {
       const t = normalize(term);
-      if (t.length < 3) {
-        return false;
-      }
+      if (!t) return false;
       return includesNormalized(doc.title, t);
     });
   });
@@ -787,7 +972,7 @@ const findRelevantDocs = (query: string, service?: SearchableService): PaletteAc
   return relevantDocs.filter((doc) =>
     terms.some((term) => {
       const t = normalize(term);
-      return t.length >= 3 && includesNormalized(doc.title, t);
+      return t.length > 0 && includesNormalized(doc.title, t);
     }),
   );
 };
@@ -816,6 +1001,7 @@ export const resolveQuery = (query: string): SearchResolution => {
   }
 
   const service = findBestService(q);
+  const allMatchingServices = findAllMatchingServices(q);
   const gettingStarted = findGettingStartedDocs(q, service);
   const extraDocs = findRelevantDocs(q, service);
   const inventory = findRelevantInventory(q, service);
@@ -958,7 +1144,16 @@ export const resolveQuery = (query: string): SearchResolution => {
     };
   }
 
-  const serviceActions = service ? [service.landing, ...service.related] : [];
+  const serviceActions: PaletteAction[] = [];
+  if (service) {
+    serviceActions.push(service.landing, ...service.related);
+  }
+  allMatchingServices.forEach((svc) => {
+    if (svc.id !== service?.id) {
+      serviceActions.push(svc.landing, ...svc.related);
+    }
+  });
+
   const actions = grantedFirst(dedupeById([...serviceActions, ...inventory.playbooks, ...intent.actions]));
   const entities = grantedFirst(dedupeById([...inventory.entities, ...intent.entities]));
   const docs = dedupeById([...gettingStarted, ...extraDocs, ...intent.docs]);
