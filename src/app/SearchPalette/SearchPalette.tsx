@@ -14,6 +14,7 @@ import {
   FlexItem,
   Icon,
   Label,
+  Switch,
   Title,
   Tooltip,
   Split,
@@ -177,6 +178,7 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
   const [selectedServiceId, setSelectedServiceId] = React.useState(DEFAULT_SERVICE_ID);
   const [favoritedItems, setFavoritedItems] = React.useState<Set<string>>(new Set());
   const [collapsedGroups, setCollapsedGroups] = React.useState<Set<ResultGroupKey>>(new Set());
+  const [showAiAnswers, setShowAiAnswers] = React.useState(true);
   const selectedService = getSelectedService(selectedServiceId);
   const showSearchShortcuts = selectedServiceId === DEFAULT_SERVICE_ID && favoritedItems.size === 0;
 
@@ -351,6 +353,7 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
   React.useEffect(() => {
     setSelectedIndex(0);
     setCollapsedGroups(new Set());
+    setShowAiAnswers(true);
   }, [query, isOpen, selectedServiceId]);
 
   React.useEffect(() => {
@@ -598,6 +601,17 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
                 <Label isCompact>{group.rows.length}</Label>
               </Button>
             ))}
+            {resolution.answer && (
+              <span className="ai-search-palette__results-summary-ai">
+                <Switch
+                  id="ai-answers-toggle"
+                  label="AI answers"
+                  isChecked={showAiAnswers}
+                  onChange={(_event, checked) => setShowAiAnswers(checked)}
+                  isReversed
+                />
+              </span>
+            )}
           </div>
         )}
         <CardBody className="ai-search-palette__body">
@@ -648,17 +662,26 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
 
           {hasQuery && (
           <div role="listbox" aria-label="Search results">
-            {resolution.answer && (
+            {resolution.answer && showAiAnswers && (
               <>
-                {sectionTitle('AI Answer')}
                 <Card isCompact>
                   <CardHeader>
                     <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
                       <FlexItem>
                         <img src={SparkleIcon} alt="" width={16} height={16} />
                       </FlexItem>
+                      <FlexItem flex={{ default: 'flex_1' }}>
+                        <CardTitle>AI summary</CardTitle>
+                      </FlexItem>
                       <FlexItem>
-                        <CardTitle>Insights summary</CardTitle>
+                        <Button
+                          variant="plain"
+                          size="sm"
+                          aria-label="Dismiss AI summary"
+                          onClick={() => setShowAiAnswers(false)}
+                        >
+                          ✕
+                        </Button>
                       </FlexItem>
                     </Flex>
                   </CardHeader>

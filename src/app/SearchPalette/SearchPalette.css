@@ -333,6 +333,15 @@
   margin-inline-start: var(--pf-t--global--spacer--sm);
 }
 
+.ai-search-palette__results-summary-ai {
+  margin-inline-start: auto;
+  font-size: var(--pf-t--global--font--size--body--sm);
+}
+
+.ai-search-palette__results-summary-ai .pf-v6-c-switch {
+  --pf-v6-c-switch--FontSize: var(--pf-t--global--font--size--body--sm);
+}
+
 .ai-search-palette__section-title {
   margin-block: var(--pf-t--global--spacer--md) var(--pf-t--global--spacer--sm);
 }
@@ -398,6 +407,10 @@
 
 .ai-search-palette__type .pf-v6-c-icon {
   --pf-v6-c-icon--Color: var(--pf-t--global--icon--color--regular);
+}
+
+.ai-search-palette__body > [role="listbox"] > .pf-v6-c-card:first-child {
+  margin-block-start: var(--pf-t--global--spacer--md);
 }
 
 .ai-search-palette__body .pf-v6-c-card + .ai-search-palette__item {
