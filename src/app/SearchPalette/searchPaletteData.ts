@@ -1014,6 +1014,9 @@ export const resolveQuery = (query: string): SearchResolution => {
 
   const isStorage = q.includes('storage') || q.includes('running out') || q.includes('capacity');
   const isSub = q.includes('subscription') || (q.includes('usage') && (q.includes('rhel') || q.includes('subscription')));
+  const isUpdate =
+    (q.includes('update') || q.includes('upgrade') || q.includes('patch')) &&
+    (q.includes('rhel') || q.includes('package') || q.includes('system'));
 
   let intent: SearchResolution = { actions: [], entities: [], docs: [] };
 
@@ -1141,6 +1144,52 @@ export const resolveQuery = (query: string): SearchResolution => {
       actions: [],
       entities: [],
       docs: [],
+    };
+  } else if (isUpdate) {
+    intent = {
+      answer: {
+        summary:
+          'To update all packages on a RHEL system, run:\n\nsudo dnf update -y\n\nFor RHEL 7 and earlier, use yum instead:\n\nsudo yum update -y\n\nTo update a specific package: sudo dnf update <package-name>. After updating, reboot if kernel or core libraries were patched. You can also automate patching across your fleet using Insights Remediations and Ansible playbooks from this console.',
+        actions: [
+          {
+            id: 'open-patch',
+            label: 'Open Patch management',
+            variant: 'primary',
+            nav: { route: '/overview', filters: ['Insights', 'Patch', 'RHEL'] },
+          },
+          {
+            id: 'run-patch-playbook',
+            label: 'Run patch playbook',
+            playbook: true,
+          },
+        ],
+      },
+      actions: [
+        {
+          id: 'act-advisories',
+          title: 'View applicable advisories',
+          kind: 'page',
+          meta: 'Insights Patch · Advisories for your systems',
+          nav: { route: '/overview', filters: ['Insights', 'Advisories'] },
+        },
+      ],
+      entities: [],
+      docs: [
+        {
+          id: 'doc-patch-rhel',
+          title: 'Updating and patching RHEL with Red Hat Insights',
+          meta: 'Documentation',
+          kind: 'documentation',
+          nav: { route: '/learning-resources' },
+        },
+        {
+          id: 'doc-dnf-guide',
+          title: 'Managing software with the DNF tool',
+          meta: 'Documentation',
+          kind: 'documentation',
+          nav: { route: '/learning-resources' },
+        },
+      ],
     };
   }
 

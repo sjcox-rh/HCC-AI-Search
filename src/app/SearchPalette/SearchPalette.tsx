@@ -568,6 +568,38 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
         role="dialog"
         aria-label="Search results"
       >
+        {hasQuery && resultGroups.length > 0 && (
+          <div className="ai-search-palette__results-summary">
+            <span className="ai-search-palette__results-summary-label">Results</span>
+            {resultGroups.map((group) => (
+              <Button
+                key={group.key}
+                variant="plain"
+                isInline
+                size="sm"
+                className="ai-search-palette__results-summary-chip"
+                onClick={() => {
+                  if (collapsedGroups.has(group.key)) {
+                    toggleGroup(group.key);
+                  }
+                  requestAnimationFrame(() => {
+                    const el = document.getElementById(`ai-search-item-group-header-${group.key}`);
+                    const scrollParent = el?.closest('.ai-search-palette__body');
+                    if (el && scrollParent) {
+                      const parentRect = scrollParent.getBoundingClientRect();
+                      const elRect = el.getBoundingClientRect();
+                      const offset = elRect.top - parentRect.top + scrollParent.scrollTop;
+                      scrollParent.scrollTo({ top: offset, behavior: 'smooth' });
+                    }
+                  });
+                }}
+              >
+                {group.label}
+                <Label isCompact>{group.rows.length}</Label>
+              </Button>
+            ))}
+          </div>
+        )}
         <CardBody className="ai-search-palette__body">
           {playbookMessage && (
             <Flex>
