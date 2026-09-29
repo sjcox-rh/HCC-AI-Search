@@ -1556,7 +1556,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   const currentBundle = getCurrentBundle();
   
   // Check if we're on a page without navigation (homepage or all services)
-  const isPageWithoutNav = location.pathname === '/' || location.pathname === '/all-services';
+  const isPageWithoutNav = location.pathname === '/' || location.pathname === '/all-services' || location.pathname.startsWith('/search');
 
   React.useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {

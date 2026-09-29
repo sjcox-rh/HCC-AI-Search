@@ -20,6 +20,7 @@ import { Roles } from '@app/Roles/Roles';
 import { AlertOverriderRole } from '@app/Roles/AlertOverriderRole';
 import { Workspaces } from '@app/Workspaces/Workspaces';
 import { RedHatAccessRequests } from '@app/RedHatAccessRequests/RedHatAccessRequests';
+import { SearchResults } from '@app/SearchResults/SearchResults';
 import { GeneralSettings } from '@app/Settings/General/GeneralSettings';
 import { ProfileSettings } from '@app/Settings/Profile/ProfileSettings';
 import { NotFound } from '@app/NotFound/NotFound';
@@ -184,6 +185,12 @@ const routes: AppRouteConfig[] = [
     exact: true,
     path: '/red-hat-access-requests',
     title: 'Red Hat Access Requests | Red Hat Hybrid Cloud Console',
+  },
+  {
+    element: <SearchResults />,
+    exact: true,
+    path: '/search',
+    title: 'Search Results | Red Hat Hybrid Cloud Console',
   },
 ];
 

@@ -409,8 +409,15 @@
   --pf-v6-c-icon--Color: var(--pf-t--global--icon--color--regular);
 }
 
-.ai-search-palette__body > [role="listbox"] > .pf-v6-c-card:first-child {
-  margin-block-start: var(--pf-t--global--spacer--md);
+.ai-search-palette__ai-hint {
+  display: flex;
+  align-items: center;
+  gap: var(--pf-t--global--spacer--sm);
+  padding-block: var(--pf-t--global--spacer--sm);
+  padding-inline: var(--pf-t--global--spacer--sm);
+  margin-block-end: var(--pf-t--global--spacer--xs);
+  background-color: var(--pf-t--global--background--color--secondary--default);
+  border-radius: var(--pf-t--global--border--radius--small);
 }
 
 .ai-search-palette__body .pf-v6-c-card + .ai-search-palette__item {

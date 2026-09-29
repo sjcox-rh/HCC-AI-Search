@@ -6,15 +6,12 @@ import {
   Card,
   CardBody,
   CardFooter,
-  CardHeader,
-  CardTitle,
   Content,
   Divider,
   Flex,
   FlexItem,
   Icon,
   Label,
-  Switch,
   Title,
   Tooltip,
   Split,
@@ -178,7 +175,6 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
   const [selectedServiceId, setSelectedServiceId] = React.useState(DEFAULT_SERVICE_ID);
   const [favoritedItems, setFavoritedItems] = React.useState<Set<string>>(new Set());
   const [collapsedGroups, setCollapsedGroups] = React.useState<Set<ResultGroupKey>>(new Set());
-  const [showAiAnswers, setShowAiAnswers] = React.useState(true);
   const selectedService = getSelectedService(selectedServiceId);
   const showSearchShortcuts = selectedServiceId === DEFAULT_SERVICE_ID && favoritedItems.size === 0;
 
@@ -307,6 +303,42 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
       .map((key) => ({ key, label: resultGroupLabel[key], rows: groups[key] }));
   }, [hasQuery, resolution]);
 
+  const topResults = React.useMemo(() => {
+    if (!hasQuery) return [];
+    const top: { item: PaletteAction; kind: ResultKind }[] = [];
+    const seen = new Set<string>();
+    const MAX_TOP = 5;
+
+    const addIfNew = (item: PaletteAction, kind: ResultKind) => {
+      if (!seen.has(item.id) && top.length < MAX_TOP) {
+        seen.add(item.id);
+        top.push({ item, kind });
+      }
+    };
+
+    resolution.actions.forEach((item) => {
+      const kind = kindForItem(item);
+      if (kind === 'service') addIfNew(item, kind);
+    });
+    if (resolution.entities.length > 0) {
+      const item = resolution.entities[0];
+      addIfNew(item, entityKind(item));
+    }
+    if (resolution.docs.length > 0) {
+      const item = resolution.docs[0];
+      addIfNew(item, (item.kind || 'documentation') as ResultKind);
+    }
+    resolution.actions.forEach((item) => {
+      const kind = kindForItem(item);
+      if (kind !== 'service') addIfNew(item, kind);
+    });
+    resolution.entities.slice(1).forEach((item) => {
+      addIfNew(item, entityKind(item));
+    });
+
+    return top;
+  }, [hasQuery, resolution]);
+
   const flatItems = React.useMemo((): FlatItem[] => {
     const items: FlatItem[] = [];
 
@@ -319,21 +351,7 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
       return items;
     }
 
-    resolution.answer?.actions.forEach((action) => {
-      items.push({
-        id: action.id,
-        type: 'row',
-        run: () => {
-          if (action.playbook) {
-            runPlaybook();
-            return;
-          }
-          if (action.nav) {
-            goTo(action.nav);
-          }
-        },
-      });
-    });
+    topResults.forEach(({ item }) => items.push({ id: `top-${item.id}`, type: 'row', run: () => runAction(item) }));
 
     resultGroups.forEach((group) => {
       items.push({
@@ -348,12 +366,11 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
     });
 
     return items;
-  }, [hasQuery, resolution, runAction, runPlaybook, goTo, suggestions, showSearchShortcuts, resultGroups, collapsedGroups, toggleGroup]);
+  }, [hasQuery, resolution, runAction, runPlaybook, goTo, suggestions, showSearchShortcuts, resultGroups, collapsedGroups, toggleGroup, topResults]);
 
   React.useEffect(() => {
     setSelectedIndex(0);
     setCollapsedGroups(new Set());
-    setShowAiAnswers(true);
   }, [query, isOpen, selectedServiceId]);
 
   React.useEffect(() => {
@@ -397,6 +414,16 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
 
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
+      const isInputField = target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA';
+
+      if (event.key === 'Enter' && isInputField && hasQuery) {
+        event.preventDefault();
+        event.stopPropagation();
+        closeAndReset();
+        navigate(`/search?q=${encodeURIComponent(query.trim())}`);
+        return;
+      }
+
       const isNestedControl = Boolean(
         target?.closest(
           '.ai-search-palette__feedback, .ai-search-palette__item-access, .ai-search-palette__services, .ai-search-palette__service-detail',
@@ -439,8 +466,7 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
         }
         return;
       }
-      const isInInput = target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA';
-      if (event.key === ' ' && !isInInput) {
+      if (event.key === ' ' && !isInputField) {
         const selected = flatItems[selectedIndex];
         if (selected?.type === 'group-header') {
           event.preventDefault();
@@ -601,17 +627,6 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
                 <Label isCompact>{group.rows.length}</Label>
               </Button>
             ))}
-            {resolution.answer && (
-              <span className="ai-search-palette__results-summary-ai">
-                <Switch
-                  id="ai-answers-toggle"
-                  label="AI answers"
-                  isChecked={showAiAnswers}
-                  onChange={(_event, checked) => setShowAiAnswers(checked)}
-                  isReversed
-                />
-              </span>
-            )}
           </div>
         )}
         <CardBody className="ai-search-palette__body">
@@ -662,74 +677,26 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
 
           {hasQuery && (
           <div role="listbox" aria-label="Search results">
-            {resolution.answer && showAiAnswers && (
-              <>
-                <Card isCompact>
-                  <CardHeader>
-                    <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
-                      <FlexItem>
-                        <img src={SparkleIcon} alt="" width={16} height={16} />
-                      </FlexItem>
-                      <FlexItem flex={{ default: 'flex_1' }}>
-                        <CardTitle>AI summary</CardTitle>
-                      </FlexItem>
-                      <FlexItem>
-                        <Button
-                          variant="plain"
-                          size="sm"
-                          aria-label="Dismiss AI summary"
-                          onClick={() => setShowAiAnswers(false)}
-                        >
-                          ✕
-                        </Button>
-                      </FlexItem>
-                    </Flex>
-                  </CardHeader>
-                  <CardBody>
-                    <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsMd' }}>
-                      <FlexItem>
-                        <Content>
-                          <p>{resolution.answer.summary}</p>
-                        </Content>
-                      </FlexItem>
-                      <FlexItem>
-                        <Flex spaceItems={{ default: 'spaceItemsSm' }} flexWrap={{ default: 'wrap' }}>
-                          {resolution.answer.actions.map((action) => (
-                            <FlexItem key={action.id}>
-                              <Button
-                                variant={action.variant || 'secondary'}
-                                onMouseEnter={() => {
-                                  const index = flatItems.findIndex((flat) => flat.id === action.id);
-                                  if (index >= 0) {
-                                    setSelectedIndex(index);
-                                  }
-                                }}
-                                onClick={() => {
-                                  if (action.playbook) {
-                                    runPlaybook();
-                                    return;
-                                  }
-                                  if (action.nav) {
-                                    goTo(action.nav);
-                                  }
-                                }}
-                              >
-                                {action.label}
-                              </Button>
-                            </FlexItem>
-                          ))}
-                        </Flex>
-                      </FlexItem>
-                    </Flex>
-                  </CardBody>
-                </Card>
-              </>
+            {resolution.answer && (
+              <div className="ai-search-palette__ai-hint">
+                <img src={SparkleIcon} alt="" width={14} height={14} />
+                <Content component="small">
+                  AI answer available — press Enter to view full results
+                </Content>
+              </div>
             )}
 
             {!hasResults && (
               <Content className="ai-search-palette__empty">
                 <p>No matching results. Try another query, or tell us what you expected below.</p>
               </Content>
+            )}
+
+            {topResults.length > 0 && (
+              <>
+                {sectionTitle('Top results')}
+                {topResults.map(({ item, kind }) => renderRow(item, kind))}
+              </>
             )}
 
             {resultGroups.map((group) => {
@@ -787,3 +754,4 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
 };
 
 export { SearchPalette };
+
