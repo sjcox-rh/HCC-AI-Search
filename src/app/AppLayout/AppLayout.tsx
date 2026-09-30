@@ -4196,16 +4196,30 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
             className="ai-search-masthead__field"
             flex={isSearchPaletteOpen ? { default: 'flex_1' } : undefined}
           >
-            <div ref={aiSearchFieldRef}>
+            <div ref={aiSearchFieldRef} className="ai-search-masthead__input-wrap">
+              <button
+                type="button"
+                className="ai-search-masthead__waffle-btn"
+                aria-label="All services"
+                onClick={() => {
+                  setAiSearchQuery('');
+                  if (!isSearchPaletteOpen) {
+                    setIsSearchPaletteOpen(true);
+                  }
+                }}
+              >
+                <ThIcon />
+              </button>
+              <span className="ai-search-masthead__divider" />
               <SearchInput
                 ref={aiSearchInputRef}
                 value={aiSearchQuery}
                 placeholder={
                   isSearchPaletteOpen
                     ? 'Ask AI, jump to resources, run playbooks, search docs...'
-                    : 'Search or ask AI...'
+                    : 'Search, ask AI, or go to...'
                 }
-                aria-label="Search or ask AI"
+                aria-label="Search, ask AI, or go to"
                 aria-expanded={isSearchPaletteOpen}
                 onChange={(_event, value) => {
                   setAiSearchQuery(value);
