@@ -28,10 +28,12 @@ import {
   LayerGroupIcon,
   ListIcon,
   FolderOpenIcon,
+  HeadsetIcon,
   LockIcon,
   PlayIcon,
   SearchIcon,
   ServerIcon,
+  ShieldAltIcon,
   TerminalIcon,
 } from '@patternfly/react-icons';
 import SparkleIcon from '@app/bgimages/sparkle-icon.svg';
@@ -58,6 +60,8 @@ const resultTypeLabel: Record<ResultKind, string> = {
   system: 'System',
   group: 'Group',
   workspace: 'Workspace',
+  role: 'Role',
+  support: 'Support',
   suggestion: 'Suggestion',
 };
 
@@ -72,6 +76,8 @@ const resultTypeIcon: Record<ResultKind, React.ReactNode> = {
   system: <HddIcon />,
   group: <LayerGroupIcon />,
   workspace: <FolderOpenIcon />,
+  role: <ShieldAltIcon />,
+  support: <HeadsetIcon />,
   suggestion: <SearchIcon />,
 };
 
@@ -95,6 +101,8 @@ const kindToGroup = (kind: ResultKind): ResultGroupKey => {
     case 'host':
     case 'system':
     case 'group':
+    case 'role':
+    case 'support':
       return 'inventories';
     case 'documentation':
       return 'learning';

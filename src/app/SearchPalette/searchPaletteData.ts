@@ -15,6 +15,8 @@ export type PaletteResultKind =
   | 'system'
   | 'group'
   | 'workspace'
+  | 'role'
+  | 'support'
   | 'suggestion';
 
 export interface PaletteAction {
