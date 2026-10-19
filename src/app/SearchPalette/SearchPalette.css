@@ -306,6 +306,14 @@
   margin-block-start: var(--pf-t--global--spacer--sm);
 }
 
+.ai-search-palette__two-col + .ai-search-palette__two-col {
+  margin-block-start: var(--pf-t--global--spacer--md);
+}
+
+.ai-search-palette__two-col + .ai-search-palette__section-title {
+  margin-block-start: var(--pf-t--global--spacer--xl);
+}
+
 @media (max-width: 768px) {
   .ai-search-palette__two-col {
     grid-template-columns: 1fr;

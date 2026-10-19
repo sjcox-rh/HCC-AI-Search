@@ -42,7 +42,6 @@ import {
   PaletteAction,
   PaletteResultKind,
   parseQuery,
-  recentEntities as defaultRecentEntities,
   resolveQuery,
   searchPrefixes,
   SearchNavTarget,
@@ -140,8 +139,32 @@ const resultTypeIcon: Record<ResultKind, React.ReactNode> = {
   suggestion: <SearchIcon />,
 };
 
-const MAX_HISTORY = 8;
-let sessionHistory: PaletteAction[] = [];
+const MAX_HISTORY = 10;
+
+const SEED_RECENT_POOL: PaletteAction[] = [
+  { id: 'seed-cluster', title: 'cluster-prod-openshift-01', meta: 'OpenShift 4.16 · Healthy', status: 'success', kind: 'cluster', nav: { route: '/overview', filters: ['Cluster: cluster-prod-openshift-01'] } },
+  { id: 'seed-host', title: 'app-server-04', meta: 'RHEL 9.3 · 2 Critical Vulnerabilities', status: 'danger', kind: 'host', nav: { route: '/overview', filters: ['Host: app-server-04', 'Critical CVE'] } },
+  { id: 'seed-group', title: 'rhel-prod-host-group', meta: 'RHEL · 48 systems', kind: 'group', nav: { route: '/overview', filters: ['Group: rhel-prod-host-group'] } },
+  { id: 'seed-workspace', title: 'production', meta: 'Workspace · 12 members', kind: 'workspace', nav: { route: '/workspaces/production' } },
+  { id: 'seed-role', title: 'Organization Administrator', meta: 'Role · 22 permissions', kind: 'role', nav: { route: '/roles/org-admin' } },
+  { id: 'seed-support', title: 'Case #03519874', meta: 'Waiting on Red Hat · High severity', status: 'warning', kind: 'support', nav: { route: '/support/case/03519874' } },
+  { id: 'seed-alerts', title: 'Alert Manager', meta: 'View and manage alerts', kind: 'action', nav: { route: '/alert-manager' } },
+  { id: 'seed-subs', title: 'Subscription usage', meta: 'RHEL · 142 of 200 used', kind: 'action', nav: { route: '/overview', filters: ['Subscriptions', 'RHEL usage'] } },
+  { id: 'seed-users', title: 'Users', meta: 'Identity & Access Management', kind: 'page', nav: { route: '/users' } },
+  { id: 'seed-insights', title: 'Red Hat Insights', meta: 'Advisor recommendations', kind: 'service', nav: { route: '/overview', filters: ['Insights'] } },
+  { id: 'seed-learning', title: 'Learning Resources', meta: 'Tutorials and documentation', kind: 'page', nav: { route: '/learning-resources' } },
+  { id: 'seed-groups', title: 'cloud-operators', meta: 'Group · 6 members · 3 roles', kind: 'group', nav: { route: '/groups/cloud-operators' } },
+];
+
+function pickRandom<T>(arr: T[], n: number): T[] {
+  const shuffled = [...arr].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, n);
+}
+
+let sessionHistory: PaletteAction[] = pickRandom(SEED_RECENT_POOL, 6).map((item) => ({
+  ...item,
+  id: `history-${item.id}`,
+}));
 let historyListeners: Array<() => void> = [];
 
 const addToHistory = (item: PaletteAction) => {
@@ -161,7 +184,7 @@ const useSessionHistory = (): PaletteAction[] => {
       historyListeners = historyListeners.filter((fn) => fn !== forceUpdate);
     };
   }, []);
-  return sessionHistory.length > 0 ? sessionHistory : defaultRecentEntities;
+  return sessionHistory;
 };
 
 const kindForItem = (item: PaletteAction): ResultKind => {
@@ -408,9 +431,9 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
 
     if (!hasQuery) {
       if (showSearchShortcuts) {
+        recentEntities.forEach((item) => items.push({ id: item.id, type: 'row', run: () => runAction(item) }));
         commonActions.forEach((item) => items.push({ id: item.id, type: 'row', run: () => runAction(item) }));
         suggestions.forEach((item) => items.push({ id: item.id, type: 'row', run: () => runAction(item) }));
-        recentEntities.forEach((item) => items.push({ id: item.id, type: 'row', run: () => runAction(item) }));
       }
       return items;
     }
@@ -732,6 +755,19 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
                   </div>
                 ) : (
                   <div role="listbox" aria-label="Search suggestions">
+                    {recentEntities.length > 0 && (
+                      <>
+                        {sectionTitle('Recent')}
+                        <div className="ai-search-palette__two-col">
+                          {recentEntities.map((item) => (
+                            <div key={item.id} className="ai-search-palette__two-col-item">
+                              {renderRow(item, entityKind(item))}
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+
                     <div className="ai-search-palette__two-col">
                       <div className="ai-search-palette__two-col-item">
                         {sectionTitle('Common actions')}
@@ -742,9 +778,6 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
                         {suggestions.map((item) => renderRow(item, 'suggestion'))}
                       </div>
                     </div>
-
-                    {sectionTitle('Recent history')}
-                    {recentEntities.map((item) => renderRow(item, entityKind(item)))}
 
                     {sectionTitle('Prefixed search')}
                     <div className="ai-search-palette__prefix-hints">
