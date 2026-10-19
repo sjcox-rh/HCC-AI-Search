@@ -1,821 +1,725 @@
 import * as React from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Button,
-  Card,
-  CardBody,
-  CardFooter,
-  CardHeader,
   Content,
   Divider,
+  Dropdown,
+  DropdownGroup,
+  DropdownItem,
+  DropdownList,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateFooter,
   Flex,
   FlexItem,
-  Gallery,
-  List,
-  ListItem,
+  MenuItemAction,
+  MenuToggle,
   PageSection,
-  Title
+  Title,
+  Tooltip
 } from '@patternfly/react-core';
-import { ServiceCard } from '@patternfly/react-component-groups';
-import { 
-  ArrowRightIcon, 
-  BellIcon, 
-  ChartLineIcon,
-  ClockIcon,
-  CloudIcon,
-  CogIcon,
-  CreditCardIcon,
-  DesktopIcon,
+import {
+  CodeIcon,
   EllipsisVIcon,
-  ExternalLinkAltIcon,
-  GripVerticalIcon,
-  SearchIcon,
-  ServerIcon,
-  ShieldAltIcon
-} from '@patternfly/react-icons';
-import { useNavigate } from 'react-router-dom';
+  HomeIcon,
+  OutlinedCloneIcon,
+  PencilAltIcon,
+  PlusCircleIcon,
+  RhStandardSunIcon,
+  RhUiAsleepIcon,
+  RhUiDarkModeIcon,
+  RhUiLightModeIcon,
+  ShareAltIcon,
+  ThumbtackIcon
+} from '@app/icons/rhUiIcons';
+import { Link, useNavigate } from 'react-router-dom';
+import { CONSOLE_DEFAULT_BODY_TITLE } from '@app/DashboardHub/consoleDefaultDashboard';
+import { getPrebuiltDashboardAutoSizeWidgetIds, isConsoleDefaultHubRow, isPrebuiltHubRow } from '@app/DashboardHub/prebuiltDashboards';
+import { useDashboardData } from '@app/DashboardHub/DashboardDataContext';
+import { CopyConfigStringModal } from '@app/DashboardHub/CopyConfigStringModal';
+import { DuplicateDashboardModal } from '@app/DashboardHub/DuplicateDashboardModal';
+import { PinDashboardModal } from '@app/DashboardHub/PinDashboardModal';
+import {
+  mergeCanvasWidgetsWithCatalog,
+  onDashboardCanvasUpdated,
+  resolveDashboardCanvasWidgets,
+  serializeDashboardConfigPayload
+} from '@app/DashboardHub/dashboardCanvasStorage';
+import {
+  IMPORT_JSON_CONFIG_MENU_LABEL,
+  PIN_DASHBOARD_TO_SERVICES_MENU_LABEL,
+  SHARE_DASHBOARD_MENU_LABEL,
+} from '@app/useCopyConfigFeedback';
+import type { ColumnSpan, RowSpan, Widget } from '@app/Homepage/widgetTypes';
+import {
+  computeDashboardWidgetPlacements,
+  getDashboardGridColumnCount,
+  getWidgetsGridColumnStyle,
+  ReadOnlyHomepageWidgetFrame,
+  WIDGET_GRID_STYLES,
+  renderHomepageWidgetContent
+} from '@app/Homepage/homepageWidgetGrid';
+import { DASHBOARD_CANVAS_LAYOUT_CLASS } from '@app/DashboardHub/dashboardCanvasLayout';
+import { useDeferredResizeObserverOffsetWidth } from '@app/useDeferredResizeObserver';
+import { MASTHEAD_USER_DISPLAY_NAME } from '@app/mastheadUserDisplayName';
+
+const HOMEPAGE_DASHBOARD_EMPTY_ILLUSTRATION_SRC =
+  'https://www.redhat.com/rhdc/managed-files/audience-1_rhai-inference-server-datasheet.webp';
+
+/** Renders in PatternFly `EmptyState` `icon` slot (receives `className` from `EmptyStateIcon`). */
+function HomepageDashboardEmptyIllustration({
+  className,
+  style,
+  ...rest
+}: React.ImgHTMLAttributes<HTMLImageElement>) {
+  return (
+    <img
+      {...rest}
+      src={HOMEPAGE_DASHBOARD_EMPTY_ILLUSTRATION_SRC}
+      alt=""
+      className={className}
+      style={{
+        maxWidth: 'min(100%, 320px)',
+        width: '100%',
+        height: 'auto',
+        display: 'block',
+        marginInline: 'auto',
+        ...style
+      }}
+    />
+  );
+}
+
+type GreetingSegment = 'morning' | 'afternoon' | 'evening' | 'night';
+
+function getGreetingSegmentForLocalTime(date: Date): GreetingSegment {
+  const h = date.getHours();
+  if (h >= 5 && h < 12) {
+    return 'morning';
+  }
+  if (h >= 12 && h < 17) {
+    return 'afternoon';
+  }
+  if (h >= 17 && h < 22) {
+    return 'evening';
+  }
+  return 'night';
+}
+
+function HomepageGreetingIcon({ segment }: { segment: GreetingSegment }) {
+  switch (segment) {
+    case 'morning':
+      return <RhStandardSunIcon aria-hidden />;
+    case 'afternoon':
+      return <RhUiLightModeIcon aria-hidden />;
+    case 'evening':
+      return <RhUiDarkModeIcon aria-hidden />;
+    case 'night':
+      return <RhUiAsleepIcon aria-hidden />;
+  }
+}
 
 const Homepage: React.FunctionComponent = () => {
   const navigate = useNavigate();
-  
-  // Get user name (currently hardcoded, matching the username dropdown)
-  const userName = "Ned";
+  const { rows, setDashboardAsHomepage } = useDashboardData();
+  const [displayWidgets, setDisplayWidgets] = useState<Widget[]>([]);
+  const [autoSizeWidgetIds, setAutoSizeWidgetIds] = useState<Set<string>>(() => new Set());
+  const homepageWidgetsGridRef = useRef<HTMLDivElement>(null);
+  const [homepageGridEl, setHomepageGridEl] = useState<HTMLDivElement | null>(null);
+  const setHomepageWidgetsGridRef = useCallback((node: HTMLDivElement | null) => {
+    homepageWidgetsGridRef.current = node;
+    setHomepageGridEl(node);
+  }, []);
+  const homepageGridWidth = useDeferredResizeObserverOffsetWidth(
+    () => homepageGridEl,
+    [homepageGridEl, displayWidgets.length]
+  );
+  const homepageWidgetsGridColumnStyle = useMemo(
+    () => getWidgetsGridColumnStyle(homepageGridWidth),
+    [homepageGridWidth]
+  );
+  const [isHomepageKebabOpen, setIsHomepageKebabOpen] = useState(false);
+  const [isHomepageHeroMenuOpen, setIsHomepageHeroMenuOpen] = useState(false);
+  const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
+  const [isPinDashboardModalOpen, setIsPinDashboardModalOpen] = useState(false);
+  const [isCopyConfigModalOpen, setIsCopyConfigModalOpen] = useState(false);
 
-  // CSS styles for explore capability cards hover effects and column spans
-  const cardHoverStyle = `
-    .pf-v6-c-card.explore-capability-card {
-      cursor: pointer !important;
-      border: 1px solid var(--pf-v6-global--BorderColor--100) !important;
-      transition: all 0.2s ease-in-out !important;
+  const closeHomepageHeroMenu = useCallback(() => {
+    setIsHomepageHeroMenuOpen(false);
+  }, []);
+
+  const greetingSegment = useMemo(() => getGreetingSegmentForLocalTime(new Date()), []);
+  /** After “Good …” — late night still says “evening”, not “night”. */
+  const greetingTitleWord = useMemo(
+    () => (greetingSegment === 'night' ? 'evening' : greetingSegment),
+    [greetingSegment]
+  );
+
+  const homepageDashboard = useMemo(
+    () => rows.find((r) => r.isHomepage),
+    [rows]
+  );
+
+  const canvasTitle = homepageDashboard
+    ? (homepageDashboard.canvasTitle ?? homepageDashboard.name)
+    : '';
+
+  /** Hero title in the widget area; built-in dashboard uses a product welcome line instead of the hub name. */
+  const homepageDashboardBodyTitle = isConsoleDefaultHubRow(homepageDashboard)
+    ? CONSOLE_DEFAULT_BODY_TITLE
+    : canvasTitle;
+
+  const sortedHubRows = useMemo(
+    () => [...rows].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })),
+    [rows]
+  );
+
+  const homepageWidgetPlacements = useMemo(() => {
+    const n = getDashboardGridColumnCount(homepageGridWidth);
+    return computeDashboardWidgetPlacements(displayWidgets, n);
+  }, [displayWidgets, homepageGridWidth]);
+
+  const refreshFromStorage = useCallback(() => {
+    if (!homepageDashboard) {
+      setDisplayWidgets([]);
+      setAutoSizeWidgetIds(new Set());
+      return;
     }
-    .pf-v6-c-card.explore-capability-card:hover {
-      border: 1px solid var(--pf-v6-global--primary-color--100) !important;
-      box-shadow: var(--pf-v6-global--BoxShadow--md) !important;
-      background-color: var(--pf-v6-global--BackgroundColor--300) !important;
-      transform: translateY(-2px) !important;
+    const raw = resolveDashboardCanvasWidgets(homepageDashboard);
+    if (raw && raw.length > 0) {
+      setDisplayWidgets(mergeCanvasWidgetsWithCatalog(raw));
+      setAutoSizeWidgetIds(
+        isPrebuiltHubRow(homepageDashboard)
+          ? new Set(getPrebuiltDashboardAutoSizeWidgetIds(homepageDashboard.id))
+          : new Set()
+      );
+    } else {
+      setDisplayWidgets([]);
+      setAutoSizeWidgetIds(new Set());
     }
-    .pf-v6-c-card.explore-capability-card:active {
-      transform: translateY(0px) !important;
-    }
-    /* Ensure proper wrapping behavior for all screen sizes */
-    .pf-v6-l-gallery {
-      flex-wrap: wrap !important;
-      display: flex !important;
-    }
-    .pf-v6-l-gallery > * {
-      flex-shrink: 1 !important;
-      flex-grow: 1 !important;
-      min-width: 280px !important;
-    }
-    
-    /* Override PatternFly Gallery defaults for custom sized cards */
-    .pf-v6-l-gallery > .settings-card-wide,
-    .pf-v6-l-gallery > .explore-capabilities-wide,
-    .pf-v6-l-gallery > .subscriptions-extra-wide {
-      flex-grow: 0 !important;
-    }
-    
-    /* Make first row cards (RHEL, OpenShift, Ansible, Recently Visited) same height */
-    .pf-v6-c-card.first-row-card {
-      height: 280px !important;
-      display: flex !important;
-      flex-direction: column !important;
-      align-self: stretch !important;
-    }
-    
-    /* Ensure card body grows to fill available space */
-    .pf-v6-c-card.first-row-card .pf-v6-c-card__body {
-      flex-grow: 1 !important;
-      display: flex !important;
-      flex-direction: column !important;
-      justify-content: space-between !important;
-    }
-    
-    /* Ensure card header and footer have consistent sizing */
-    .pf-v6-c-card.first-row-card .pf-v6-c-card__header,
-    .pf-v6-c-card.first-row-card .pf-v6-c-card__footer {
-      flex-shrink: 0 !important;
-    }
-    
-    /* Create a more compact layout by reducing gap after first row */
-    .pf-v6-l-gallery {
-      gap: 16px !important;
-    }
-    
-    /* Column spans for larger screens - PatternFly Gallery uses flexbox */
-    @media (min-width: 1200px) {
-      /* Specific adjustments for better visual alignment */
-      .explore-capabilities-wide {
-        margin-top: -8px !important;
+  }, [homepageDashboard]);
+
+  const handleAutoSizeFit = useCallback(
+    (id: string, colSpan: ColumnSpan, rowSpan: RowSpan, complete: boolean) => {
+      setDisplayWidgets((prev) => prev.map((w) => (w.id === id ? { ...w, colSpan, rowSpan } : w)));
+      if (!complete) {
+        return;
       }
-      
-      /* Ensure first row cards have consistent height */
-      .pf-v6-c-card.first-row-card {
-        height: 280px !important;
+      setAutoSizeWidgetIds((ids) => {
+        if (!ids.has(id)) {
+          return ids;
+        }
+        const next = new Set(ids);
+        next.delete(id);
+        return next;
+      });
+    },
+    []
+  );
+
+  useEffect(() => {
+    refreshFromStorage();
+  }, [refreshFromStorage]);
+
+  useEffect(() => {
+    return onDashboardCanvasUpdated((detail) => {
+      if (detail?.dashboardId && detail.dashboardId === homepageDashboard?.id) {
+        refreshFromStorage();
       }
-      
-      /* Settings card - 2 columns out of 8 column grid = 25% */
-      .settings-card-wide {
-        flex: 0 0 calc(25% - 16px) !important;
-        max-width: calc(25% - 16px) !important;
-        min-width: calc(25% - 16px) !important;
-      }
-      
-      /* Explore capabilities card - 6 columns out of 8 column grid = 75% */
-      .explore-capabilities-wide {
-        flex: 0 0 calc(75% - 16px) !important;
-        max-width: calc(75% - 16px) !important;
-        min-width: calc(75% - 16px) !important;
-      }
-      
-      /* Subscriptions card - 8 columns out of 8 column grid = 100% */
-      .subscriptions-extra-wide {
-        flex: 0 0 calc(100% - 16px) !important;
-        max-width: calc(100% - 16px) !important;
-        min-width: calc(100% - 16px) !important;
-      }
+    });
+  }, [homepageDashboard?.id, refreshFromStorage]);
+
+  const closeHomepageKebab = useCallback(() => {
+    setIsHomepageKebabOpen(false);
+  }, []);
+
+  const closeDuplicateModal = useCallback(() => {
+    setIsDuplicateModalOpen(false);
+  }, []);
+
+  const handleDuplicateModalSuccess = useCallback(
+    (newId: string) => {
+      setIsDuplicateModalOpen(false);
+      navigate(`/dashboard-hub/${newId}`);
+    },
+    [navigate]
+  );
+
+  useEffect(() => {
+    if (!homepageDashboard) {
+      setIsDuplicateModalOpen(false);
     }
-    
-    @media (min-width: 992px) and (max-width: 1199px) {
-      /* Settings card - 33% on medium screens */
-      .settings-card-wide {
-        flex: 0 0 calc(33.333% - 16px) !important;
-        max-width: calc(33.333% - 16px) !important;
-        min-width: calc(33.333% - 16px) !important;
-      }
-      
-      /* Explore capabilities card - 66% on medium screens */
-      .explore-capabilities-wide {
-        flex: 0 0 calc(66.666% - 16px) !important;
-        max-width: calc(66.666% - 16px) !important;
-        min-width: calc(66.666% - 16px) !important;
-      }
-      
-      /* Subscriptions card - 100% on medium screens */
-      .subscriptions-extra-wide {
-        flex: 0 0 calc(100% - 16px) !important;
-        max-width: calc(100% - 16px) !important;
-        min-width: calc(100% - 16px) !important;
-      }
+  }, [homepageDashboard]);
+
+  const copyConfigString = useMemo(() => {
+    if (!homepageDashboard) {
+      return '';
     }
-    
-    /* On smaller screens, all cards take full width */
-    @media (max-width: 991px) {
-      .settings-card-wide,
-      .explore-capabilities-wide,
-      .subscriptions-extra-wide {
-        flex: 1 1 100% !important;
-        max-width: 100% !important;
-        min-width: 280px !important;
-      }
-    }
-  `;
+    const raw = resolveDashboardCanvasWidgets(homepageDashboard);
+    return serializeDashboardConfigPayload({
+      dashboardId: homepageDashboard.id,
+      name: homepageDashboard.name,
+      widgets: raw ?? []
+    });
+  }, [homepageDashboard]);
+
+  const handleOpenCopyConfigModal = useCallback(() => {
+    closeHomepageKebab();
+    setIsCopyConfigModalOpen(true);
+  }, [closeHomepageKebab]);
 
   return (
     <>
-      <style>{cardHoverStyle}</style>
-      <PageSection>
-        {/* Header Section */}
-        <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsMd' }}>
-          <FlexItem>
-            <div style={{ maxWidth: '1566px', margin: '0 auto', width: '100%' }}>
-              <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsFlexStart' }}>
-                <FlexItem flex={{ default: 'flex_1' }}>
-                  <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsXs' }}>
-                    <FlexItem>
-                      <Title headingLevel="h1" size="2xl">
-                        Hi, {userName}
-                      </Title>
-                    </FlexItem>
-                    <FlexItem>
-                      <Title headingLevel="h2" size="lg">
-                        Welcome to your Hybrid Cloud Console.
-                      </Title>
-                    </FlexItem>
-                  </Flex>
+      <style>{WIDGET_GRID_STYLES}</style>
+      <PageSection isWidthLimited={false} className="homepage-hero-header">
+        <div className="homepage-hero-header__inner">
+          <Flex
+            alignItems={{ default: 'alignItemsCenter' }}
+            justifyContent={{ default: 'justifyContentSpaceBetween' }}
+            flexWrap={{ default: 'wrap' }}
+            rowGap={{ default: 'rowGapMd' }}
+            style={{ width: '100%' }}
+          >
+            <FlexItem>
+              <Flex
+                spaceItems={{ default: 'spaceItemsMd' }}
+                alignItems={{ default: 'alignItemsCenter' }}
+                style={{ minWidth: 0 }}
+              >
+                <span className="homepage-hero-greeting__icon" aria-hidden>
+                  <HomepageGreetingIcon segment={greetingSegment} />
+                </span>
+                <Title
+                  headingLevel="h1"
+                  size="4xl"
+                  className="homepage-hero-greeting__title"
+                >
+                  Good {greetingTitleWord}, {MASTHEAD_USER_DISPLAY_NAME}
+                </Title>
+              </Flex>
+            </FlexItem>
+            <FlexItem>
+              <Dropdown
+                id="homepage-hero-assignment-menu"
+                data-hcc-menu-rev="leading-icons-1"
+                isOpen={isHomepageHeroMenuOpen}
+                isScrollable={false}
+                shouldFocusToggleOnSelect
+                onOpenChange={setIsHomepageHeroMenuOpen}
+                popperProps={{ position: 'end' }}
+                toggle={(toggleRef: React.Ref<HTMLButtonElement>) => (
+                  <MenuToggle
+                    ref={toggleRef}
+                    variant="default"
+                    isExpanded={isHomepageHeroMenuOpen}
+                    aria-label={
+                      homepageDashboard
+                        ? `Homepage: ${canvasTitle}. Open menu.`
+                        : 'No homepage assigned. Open menu to set a dashboard as your homepage.'
+                    }
+                    onClick={() => setIsHomepageHeroMenuOpen((o) => !o)}
+                  >
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        minWidth: 0,
+                        maxWidth: 'min(32rem, 70vw)',
+                        color: homepageDashboard
+                          ? undefined
+                          : 'var(--pf-t--global--text--color--subtle)'
+                      }}
+                    >
+                      <HomeIcon
+                        style={{ color: 'var(--pf-t--global--icon--Color--200)', flexShrink: 0 }}
+                        aria-hidden
+                      />
+                      <span
+                        style={{
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          minWidth: 0
+                        }}
+                      >
+                        {homepageDashboard ? canvasTitle : 'No homepage assigned'}
+                      </span>
+                    </span>
+                  </MenuToggle>
+                )}
+              >
+                <DropdownGroup label="Set as homepage ..." labelHeadingLevel="h2">
+                  <DropdownList>
+                    {sortedHubRows.length > 0 ? (
+                      sortedHubRows.map((row) => (
+                        <DropdownItem
+                          key={row.id}
+                          value={row.id}
+                          isSelected={row.isHomepage === true}
+                          onClick={() => {
+                            setDashboardAsHomepage(row.id);
+                            closeHomepageHeroMenu();
+                          }}
+                          actions={
+                            isPrebuiltHubRow(row) ? (
+                              <Tooltip content="System default dashboards are uneditable.">
+                                <MenuItemAction
+                                  icon={<PencilAltIcon />}
+                                  aria-label={`Edit ${row.name} (not available, system dashboards are uneditable)`}
+                                  isDisabled
+                                  onClick={(e) => {
+                                    e?.stopPropagation?.();
+                                  }}
+                                />
+                              </Tooltip>
+                            ) : (
+                              <MenuItemAction
+                                icon={<PencilAltIcon />}
+                                aria-label={`Edit ${row.name}`}
+                                onClick={(e) => {
+                                  e?.stopPropagation?.();
+                                  closeHomepageHeroMenu();
+                                  navigate(`/dashboard-hub/${row.id}`);
+                                }}
+                              />
+                            )
+                          }
+                        >
+                          {row.name}
+                        </DropdownItem>
+                      ))
+                    ) : (
+                      <DropdownItem value="no-dashboards" isDisabled>
+                        No dashboards in hub yet
+                      </DropdownItem>
+                    )}
+                  </DropdownList>
+                </DropdownGroup>
+                <Divider />
+                <DropdownGroup label="Create new dashboard" labelHeadingLevel="h2">
+                  <DropdownList>
+                    <DropdownItem
+                      value="hp-menu-blank"
+                      icon={
+                        <span className="homepage-hero-assignment-menu__leading-icon">
+                          <PlusCircleIcon
+                            style={{ color: 'var(--pf-t--global--icon--Color--200)' }}
+                            aria-hidden
+                          />
+                        </span>
+                      }
+                      onClick={() => {
+                        closeHomepageHeroMenu();
+                        navigate('/dashboard-hub', {
+                          state: { fromHome: { openCreate: 'blank' } }
+                        });
+                      }}
+                    >
+                      Create from blank
+                    </DropdownItem>
+                    <DropdownItem
+                      value="hp-menu-import"
+                      icon={
+                        <span className="homepage-hero-assignment-menu__leading-icon">
+                          <CodeIcon
+                            style={{ color: 'var(--pf-t--global--icon--Color--200)' }}
+                            aria-hidden
+                          />
+                        </span>
+                      }
+                      onClick={() => {
+                        closeHomepageHeroMenu();
+                        navigate('/dashboard-hub', {
+                          state: { fromHome: { openCreate: 'import' } }
+                        });
+                      }}
+                    >
+                      {IMPORT_JSON_CONFIG_MENU_LABEL}
+                    </DropdownItem>
+                    <DropdownItem
+                      value="hp-menu-dup"
+                      icon={
+                        <span className="homepage-hero-assignment-menu__leading-icon">
+                          <OutlinedCloneIcon
+                            style={{ color: 'var(--pf-t--global--icon--Color--200)' }}
+                            aria-hidden
+                          />
+                        </span>
+                      }
+                      onClick={() => {
+                        closeHomepageHeroMenu();
+                        navigate('/dashboard-hub', {
+                          state: { fromHome: { openCreate: 'duplicate' } }
+                        });
+                      }}
+                    >
+                      Duplicate existing
+                    </DropdownItem>
+                  </DropdownList>
+                </DropdownGroup>
+                <Divider />
+                <DropdownList>
+                  <DropdownItem
+                    value="dashboard-hub"
+                    description="Create, manage, and share dashboards"
+                    onClick={() => {
+                      closeHomepageHeroMenu();
+                      navigate('/dashboard-hub');
+                    }}
+                  >
+                    Dashboard hub
+                  </DropdownItem>
+                </DropdownList>
+              </Dropdown>
+            </FlexItem>
+          </Flex>
+        </div>
+        <div className="homepage-hero-separator" role="separator" aria-orientation="horizontal" />
+      </PageSection>
+      <PageSection className="homepage-dashboard-page-section">
+        {homepageDashboard ? (
+          <>
+            <div className={DASHBOARD_CANVAS_LAYOUT_CLASS}>
+              <Flex
+                alignItems={{ default: 'alignItemsFlexStart' }}
+                justifyContent={{ default: 'justifyContentSpaceBetween' }}
+                spaceItems={{ default: 'spaceItemsMd' }}
+                style={{
+                  width: '100%',
+                  minWidth: 0,
+                  marginBottom: 'var(--pf-t--global--spacer--sm)',
+                }}
+                className="homepage-dashboard-title-bar"
+              >
+                <FlexItem className="homepage-dashboard-title" style={{ minWidth: 0, flex: '1 1 auto' }}>
+                  <Title headingLevel="h2" size="2xl" className="homepage-dashboard-title__text">
+                    {homepageDashboardBodyTitle}
+                  </Title>
                 </FlexItem>
-                <FlexItem>
-                  <Flex spaceItems={{ default: 'spaceItemsSm' }}>
+                <FlexItem
+                  className="homepage-dashboard-actions"
+                  style={{ flex: '0 0 auto' }}
+                >
+                  <Flex
+                    alignItems={{ default: 'alignItemsCenter' }}
+                    spaceItems={{ default: 'spaceItemsSm' }}
+                    style={{ flexWrap: 'nowrap' }}
+                  >
                     <FlexItem>
-                      <Button variant="link">
-                        Reset to default
-                      </Button>
+                      <Dropdown
+                        isOpen={isHomepageKebabOpen}
+                        onSelect={() => setIsHomepageKebabOpen(false)}
+                        onOpenChange={setIsHomepageKebabOpen}
+                        popperProps={{ position: 'end' }}
+                        toggle={(toggleRef: React.Ref<HTMLButtonElement>) => (
+                            <MenuToggle
+                              ref={toggleRef}
+                              variant="plain"
+                              isExpanded={isHomepageKebabOpen}
+                              aria-label="Homepage dashboard actions"
+                              onClick={() => {
+                                setIsHomepageKebabOpen((o) => !o);
+                              }}
+                            >
+                              <EllipsisVIcon />
+                            </MenuToggle>
+                        )}
+                        shouldFocusToggleOnSelect
+                      >
+                        <DropdownList>
+                          <DropdownItem key="copy-config" onClick={handleOpenCopyConfigModal}>
+                            <span
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+                            >
+                              <ShareAltIcon style={{ color: 'var(--pf-t--global--icon--Color--200)' }} />
+                              {SHARE_DASHBOARD_MENU_LABEL}
+                            </span>
+                          </DropdownItem>
+                          <DropdownItem
+                            key="duplicate"
+                            onClick={() => {
+                              closeHomepageKebab();
+                              setIsDuplicateModalOpen(true);
+                            }}
+                          >
+                            <span
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+                            >
+                              <OutlinedCloneIcon style={{ color: 'var(--pf-t--global--icon--Color--200)' }} />
+                              Duplicate dashboard
+                            </span>
+                          </DropdownItem>
+                          <DropdownItem
+                            key="pin-to-services"
+                            onClick={() => {
+                              closeHomepageKebab();
+                              setIsPinDashboardModalOpen(true);
+                            }}
+                          >
+                            <span
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+                            >
+                              <ThumbtackIcon style={{ color: 'var(--pf-t--global--icon--Color--200)' }} />
+                              {PIN_DASHBOARD_TO_SERVICES_MENU_LABEL}
+                            </span>
+                          </DropdownItem>
+                          <Divider component="li" role="separator" />
+                          <DropdownItem
+                            key="dashboard-hub"
+                            description="Create, manage, share dashboards"
+                            onClick={() => {
+                              closeHomepageKebab();
+                              navigate('/dashboard-hub');
+                            }}
+                          >
+                            Dashboard Hub
+                          </DropdownItem>
+                        </DropdownList>
+                      </Dropdown>
                     </FlexItem>
                     <FlexItem>
-                      <Button variant="primary">
-                        + Add widgets
-                      </Button>
+                      {isPrebuiltHubRow(homepageDashboard) ? (
+                        <Tooltip content="System default dashboards are not editable. Create a duplicate in order to edit this dashboard.">
+                          <Button
+                            variant="secondary"
+                            icon={<OutlinedCloneIcon />}
+                            iconPosition="start"
+                            onClick={() => setIsDuplicateModalOpen(true)}
+                          >
+                            Duplicate dashboard
+                          </Button>
+                        </Tooltip>
+                      ) : (
+                        <Button
+                          variant="secondary"
+                          icon={<PencilAltIcon />}
+                          iconPosition="start"
+                          onClick={() => navigate(`/dashboard-hub/${homepageDashboard.id}`)}
+                        >
+                          Edit dashboard
+                        </Button>
+                      )}
                     </FlexItem>
                   </Flex>
                 </FlexItem>
               </Flex>
-            </div>
-          </FlexItem>
-          
-          {/* Divider */}
-          <FlexItem>
-            <div style={{ maxWidth: '1566px', margin: '0 auto', width: '100%' }}>
-              <Divider />
-            </div>
-          </FlexItem>
-          
-          {/* Service Cards Section */}
-          <FlexItem>
-            <div style={{ maxWidth: '1566px', margin: '0 auto', width: '100%' }}>
-              <Gallery 
-                hasGutter 
-                minWidths={{
-                  default: '280px',
-                  sm: '280px',
-                  md: '280px',
-                  lg: '280px',
-                  xl: '280px'
-                }}
-                maxWidths={{
-                  default: 'none'
-                }}
-              >
-              <Card isFullHeight className="settings-card-wide first-row-card">
-                <CardHeader>
-                  <Flex alignItems={{ default: 'alignItemsCenter' }} justifyContent={{ default: 'justifyContentSpaceBetween' }}>
-                    <FlexItem>
-                      <Title headingLevel="h4" className="pf-v6-c-card__title">
-                        Red Hat Enterprise Linux
-                      </Title>
-                    </FlexItem>
-                    <FlexItem>
-                      <Flex spaceItems={{ default: 'spaceItemsXs' }}>
-                        <FlexItem>
-                          <Button variant="plain" aria-label="More actions">
-                            <EllipsisVIcon />
-                          </Button>
-                        </FlexItem>
-                        <FlexItem>
-                          <Button variant="plain" aria-label="Drag to reorder">
-                            <GripVerticalIcon />
-                          </Button>
-                        </FlexItem>
-                      </Flex>
-                    </FlexItem>
-                  </Flex>
-                </CardHeader>
-                <Divider />
-                <CardBody>
-                  <Content>
-                    Proactively assess, secure, and stabilize the business-critical services that you scale from your RHEL systems.
-                  </Content>
-                </CardBody>
-                <CardFooter>
-                  <Button variant="link" iconPosition="end" icon={<ArrowRightIcon />}>
-                    Insights for RHEL
-                  </Button>
-                </CardFooter>
-              </Card>
-              
-              <Card isFullHeight className="settings-card-wide first-row-card">
-                <CardHeader>
-                  <Flex alignItems={{ default: 'alignItemsCenter' }} justifyContent={{ default: 'justifyContentSpaceBetween' }}>
-                    <FlexItem>
-                      <Title headingLevel="h4" className="pf-v6-c-card__title">
-                        Red Hat OpenShift
-                      </Title>
-                    </FlexItem>
-                    <FlexItem>
-                      <Flex spaceItems={{ default: 'spaceItemsXs' }}>
-                        <FlexItem>
-                          <Button variant="plain" aria-label="More actions">
-                            <EllipsisVIcon />
-                          </Button>
-                        </FlexItem>
-                        <FlexItem>
-                          <Button variant="plain" aria-label="Drag to reorder">
-                            <GripVerticalIcon />
-                          </Button>
-                        </FlexItem>
-                      </Flex>
-                    </FlexItem>
-                  </Flex>
-                </CardHeader>
-                <Divider />
-                <CardBody>
-                  <Content>
-                    Build, run, and scale container-based applications - now with developer tools, CI/CD, and release management.
-                  </Content>
-                </CardBody>
-                <CardFooter>
-                  <Button variant="link" iconPosition="end" icon={<ArrowRightIcon />}>
-                    OpenShift
-                  </Button>
-                </CardFooter>
-              </Card>
-              
-              <Card isFullHeight className="settings-card-wide first-row-card">
-                <CardHeader>
-                  <Flex alignItems={{ default: 'alignItemsCenter' }} justifyContent={{ default: 'justifyContentSpaceBetween' }}>
-                    <FlexItem>
-                      <Title headingLevel="h4" className="pf-v6-c-card__title">
-                        Ansible Automation Platform
-                      </Title>
-                    </FlexItem>
-                    <FlexItem>
-                      <Flex spaceItems={{ default: 'spaceItemsXs' }}>
-                        <FlexItem>
-                          <Button variant="plain" aria-label="More actions">
-                            <EllipsisVIcon />
-                          </Button>
-                        </FlexItem>
-                        <FlexItem>
-                          <Button variant="plain" aria-label="Drag to reorder">
-                            <GripVerticalIcon />
-                          </Button>
-                        </FlexItem>
-                      </Flex>
-                    </FlexItem>
-                  </Flex>
-                </CardHeader>
-                <Divider />
-                <CardBody>
-                  <Content>
-                    Create, share, and manage automations - from development and operations, to security and network teams.
-                  </Content>
-                </CardBody>
-                <CardFooter>
-                  <Button variant="link" iconPosition="end" icon={<ArrowRightIcon />}>
-                    Ansible
-                  </Button>
-                </CardFooter>
-              </Card>
-              
-              <Card isFullHeight className="settings-card-wide first-row-card">
-                <CardHeader>
-                  <Flex alignItems={{ default: 'alignItemsCenter' }} justifyContent={{ default: 'justifyContentSpaceBetween' }}>
-                    <FlexItem>
-                      <Title headingLevel="h4" className="pf-v6-c-card__title">
-                        Recently Visited
-                      </Title>
-                    </FlexItem>
-                    <FlexItem>
-                      <Flex spaceItems={{ default: 'spaceItemsXs' }}>
-                        <FlexItem>
-                          <Button variant="plain" aria-label="More actions">
-                            <EllipsisVIcon />
-                          </Button>
-                        </FlexItem>
-                        <FlexItem>
-                          <Button variant="plain" aria-label="Drag to reorder">
-                            <GripVerticalIcon />
-                          </Button>
-                        </FlexItem>
-                      </Flex>
-                    </FlexItem>
-                  </Flex>
-                </CardHeader>
-                <Divider />
-                <CardBody>
-                  <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
-                    <FlexItem>
-                      <Content>
-                        Quick access to your most recently visited services and resources.
-                      </Content>
-                    </FlexItem>
-                    <FlexItem flex={{ default: 'flex_1' }}>
-                      <List isPlain>
-                        <ListItem>
-                          <Button variant="link" onClick={() => navigate('/dashboard')}>
-                            Dashboard
-                          </Button>
-                        </ListItem>
-                        <ListItem>
-                          <Button variant="link" onClick={() => navigate('/alert-manager')}>
-                            Alert Manager
-                          </Button>
-                        </ListItem>
-                        <ListItem>
-                          <Button variant="link" onClick={() => navigate('/data-integration')}>
-                            Data Integration
-                          </Button>
-                        </ListItem>
-                        <ListItem>
-                          <Button variant="link" onClick={() => navigate('/my-user-access')}>
-                            My User Access
-                          </Button>
-                        </ListItem>
-                        <ListItem>
-                          <Button variant="link" onClick={() => navigate('/event-log')}>
-                            Event Log
-                          </Button>
-                        </ListItem>
-                      </List>
-                    </FlexItem>
-                  </Flex>
-                </CardBody>
-              </Card>
-              
-              <Card isFullHeight className="settings-card-wide">
-                <CardHeader>
-                  <Flex alignItems={{ default: 'alignItemsCenter' }} justifyContent={{ default: 'justifyContentSpaceBetween' }}>
-                    <FlexItem>
-                      <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsNone' }}>
-                        <FlexItem>
-                          <Title headingLevel="h4" className="pf-v6-c-card__title">
-                            Settings
-                          </Title>
-                        </FlexItem>
-                        <FlexItem>
-                          <Button variant="link" size="sm" onClick={() => navigate('/overview')}>
-                            Manage settings
-                          </Button>
-                        </FlexItem>
-                      </Flex>
-                    </FlexItem>
-                    <FlexItem>
-                      <Flex spaceItems={{ default: 'spaceItemsXs' }}>
-                        <FlexItem>
-                          <Button variant="plain" aria-label="More actions">
-                            <EllipsisVIcon />
-                          </Button>
-                        </FlexItem>
-                        <FlexItem>
-                          <Button variant="plain" aria-label="Drag to reorder">
-                            <GripVerticalIcon />
-                          </Button>
-                        </FlexItem>
-                      </Flex>
-                    </FlexItem>
-                  </Flex>
-                </CardHeader>
-                <Divider />
-                <CardBody>
-                  <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
-                    <FlexItem>
-                      <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsXs' }}>
-                        <FlexItem>
-                          <Flex alignItems={{ default: 'alignItemsCenter' }} justifyContent={{ default: 'justifyContentSpaceBetween' }}>
-                            <FlexItem>
-                              <Content component="small" style={{ color: 'var(--pf-v6-global--Color--200)' }}>
-                                Recently fired events
-                              </Content>
-                            </FlexItem>
-                            <FlexItem>
-                              <Content component="p" style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>
-                                7
-                              </Content>
-                            </FlexItem>
-                          </Flex>
-                        </FlexItem>
-                        <FlexItem>
-                          <Flex alignItems={{ default: 'alignItemsCenter' }} justifyContent={{ default: 'justifyContentSpaceBetween' }}>
-                            <FlexItem>
-                              <Content component="small" style={{ color: 'var(--pf-v6-global--Color--200)' }}>
-                                All data integrations
-                              </Content>
-                            </FlexItem>
-                            <FlexItem>
-                              <Content component="p" style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>
-                                12
-                              </Content>
-                            </FlexItem>
-                          </Flex>
-                        </FlexItem>
-                      </Flex>
-                    </FlexItem>
-                  </Flex>
-                </CardBody>
-              </Card>
-              
-              <Card isFullHeight className="settings-card-wide">
-                <CardHeader>
-                  <Flex alignItems={{ default: 'alignItemsCenter' }} justifyContent={{ default: 'justifyContentSpaceBetween' }}>
-                    <FlexItem>
-                      <Title headingLevel="h4" className="pf-v6-c-card__title">
-                        Image Builder
-                      </Title>
-                    </FlexItem>
-                    <FlexItem>
-                      <Flex spaceItems={{ default: 'spaceItemsXs' }}>
-                        <FlexItem>
-                          <Button variant="plain" aria-label="More actions">
-                            <EllipsisVIcon />
-                          </Button>
-                        </FlexItem>
-                        <FlexItem>
-                          <Button variant="plain" aria-label="Drag to reorder">
-                            <GripVerticalIcon />
-                          </Button>
-                        </FlexItem>
-                      </Flex>
-                    </FlexItem>
-                  </Flex>
-                </CardHeader>
-                <Divider />
-                <CardBody>
-                  <Content>
-                    Create customized system images for disks, VMs, and cloud platforms. Image Builder automates configurations, saving you time and ensuring consistent, deployment-ready images every time.
-                  </Content>
-                </CardBody>
-                <CardFooter>
-                  <Button variant="link" iconPosition="end" icon={<ArrowRightIcon />}>
-                    Images
-                  </Button>
-                </CardFooter>
-              </Card>
-              
-              <Card isFullHeight className="explore-capabilities-wide">
-                <CardHeader>
-                  <Flex alignItems={{ default: 'alignItemsCenter' }} justifyContent={{ default: 'justifyContentSpaceBetween' }}>
-                    <FlexItem>
-                      <Title headingLevel="h4" className="pf-v6-c-card__title">
-                        Explore capabilities
-                      </Title>
-                    </FlexItem>
-                    <FlexItem>
-                      <Flex spaceItems={{ default: 'spaceItemsXs' }}>
-                        <FlexItem>
-                          <Button variant="plain" aria-label="More actions">
-                            <EllipsisVIcon />
-                          </Button>
-                        </FlexItem>
-                        <FlexItem>
-                          <Button variant="plain" aria-label="Drag to reorder">
-                            <GripVerticalIcon />
-                          </Button>
-                        </FlexItem>
-                      </Flex>
-                    </FlexItem>
-                  </Flex>
-                </CardHeader>
-                <Divider />
-                <CardBody>
-                  <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsLg' }}>
-                    {/* First row - 3 cards */}
-                    <FlexItem>
-                      <Flex direction={{ default: 'row' }} spaceItems={{ default: 'spaceItemsMd' }}>
-                        <FlexItem flex={{ default: 'flex_1' }}>
-                          <Card 
-                            onClick={() => navigate('/tour')} 
-                            className="explore-capability-card"
-                            isCompact
-                            variant="secondary"
-                          >
-                            <CardBody>
-                              <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
-                                <FlexItem>
-                                  <Title headingLevel="h4" size="md">
-                                    Get started with a tour
-                                  </Title>
-                                </FlexItem>
-                                <FlexItem>
-                                  <Content component="small">
-                                    Take a quick guided tour to understand how the Red Hat Hybrid Cloud Console's capabilities will increase your efficiency
-                                  </Content>
-                                </FlexItem>
-                              </Flex>
-                            </CardBody>
-                          </Card>
-                        </FlexItem>
-                        <FlexItem flex={{ default: 'flex_1' }}>
-                          <Card 
-                            onClick={() => navigate('/openshift-aws')} 
-                            className="explore-capability-card"
-                            isCompact
-                            variant="secondary"
-                          >
-                            <CardBody>
-                              <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
-                                <FlexItem>
-                                  <Title headingLevel="h4" size="md">
-                                    Try OpenShift on AWS
-                                  </Title>
-                                </FlexItem>
-                                <FlexItem>
-                                  <Content component="small">
-                                    Quickly build, deploy, and scale applications with Red Hat OpenShift Service on AWS (ROSA), our fully-managed turnkey application platform.
-                                  </Content>
-                                </FlexItem>
-                              </Flex>
-                            </CardBody>
-                          </Card>
-                        </FlexItem>
-                        <FlexItem flex={{ default: 'flex_1' }}>
-                          <Card 
-                            onClick={() => navigate('/developer-sandbox')} 
-                            className="explore-capability-card"
-                            isCompact
-                            variant="secondary"
-                          >
-                            <CardBody>
-                              <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
-                                <FlexItem>
-                                  <Title headingLevel="h4" size="md">
-                                    Try our products in the Developer Sandbox
-                                  </Title>
-                                </FlexItem>
-                                <FlexItem>
-                                  <Content component="small">
-                                    The Developer Sandbox offers no-cost access to Red Hat products and technologies for trial use - no setup or configuration necessary.
-                                  </Content>
-                                </FlexItem>
-                              </Flex>
-                            </CardBody>
-                          </Card>
-                        </FlexItem>
-                      </Flex>
-                    </FlexItem>
-                    {/* Second row - 2 cards */}
-                    <FlexItem>
-                      <Flex direction={{ default: 'row' }} spaceItems={{ default: 'spaceItemsMd' }} justifyContent={{ default: 'justifyContentFlexStart' }}>
-                        <FlexItem flex={{ default: 'flex_1' }} style={{ maxWidth: 'calc(33.333% - 8px)' }}>
-                          <Card 
-                            onClick={() => navigate('/rhel-analysis')} 
-                            className="explore-capability-card"
-                            isCompact
-                            variant="secondary"
-                          >
-                            <CardBody>
-                              <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
-                                <FlexItem>
-                                  <Title headingLevel="h4" size="md">
-                                    Analyze RHEL environments
-                                  </Title>
-                                </FlexItem>
-                                <FlexItem>
-                                  <Content component="small">
-                                    Analyze platforms and applications from the console to better manage your hybrid cloud environments.
-                                  </Content>
-                                </FlexItem>
-                              </Flex>
-                            </CardBody>
-                          </Card>
-                        </FlexItem>
-                        <FlexItem flex={{ default: 'flex_1' }} style={{ maxWidth: 'calc(33.333% - 8px)' }}>
-                          <Card 
-                            onClick={() => navigate('/centos-rhel-conversion')} 
-                            className="explore-capability-card"
-                            isCompact
-                            variant="secondary"
-                          >
-                            <CardBody>
-                              <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
-                                <FlexItem>
-                                  <Title headingLevel="h4" size="md">
-                                    Convert from CentOS to RHEL
-                                  </Title>
-                                </FlexItem>
-                                <FlexItem>
-                                  <Content component="small">
-                                    Seamlessly migrate your CentOS systems to Red Hat Enterprise Linux with our conversion tools and guidance.
-                                  </Content>
-                                </FlexItem>
-                              </Flex>
-                            </CardBody>
-                          </Card>
-                        </FlexItem>
-                      </Flex>
-                    </FlexItem>
-                  </Flex>
-                </CardBody>
-              </Card>
-              
-              <Card isFullHeight className="settings-card-wide">
-                <CardHeader>
-                  <Flex alignItems={{ default: 'alignItemsCenter' }} justifyContent={{ default: 'justifyContentSpaceBetween' }}>
-                    <FlexItem>
-                      <Title headingLevel="h4" className="pf-v6-c-card__title">
-                        Advanced Cluster Security
-                      </Title>
-                    </FlexItem>
-                    <FlexItem>
-                      <Flex spaceItems={{ default: 'spaceItemsXs' }}>
-                        <FlexItem>
-                          <Button variant="plain" aria-label="More actions">
-                            <EllipsisVIcon />
-                          </Button>
-                        </FlexItem>
-                        <FlexItem>
-                          <Button variant="plain" aria-label="Drag to reorder">
-                            <GripVerticalIcon />
-                          </Button>
-                        </FlexItem>
-                      </Flex>
-                    </FlexItem>
-                  </Flex>
-                </CardHeader>
-                <Divider />
-                <CardBody>
-                  <Content>
-                    Fully hosted software as a service for protecting cloud-native applications and Kubernetes.
-                  </Content>
-                </CardBody>
-                <CardFooter>
-                  <Button variant="link" iconPosition="end" icon={<ArrowRightIcon />}>
-                    RHACS Cloud Service
-                  </Button>
-                </CardFooter>
-              </Card>
-              
-              <Card isFullHeight className="settings-card-wide">
-                <CardHeader>
-                  <Flex alignItems={{ default: 'alignItemsCenter' }} justifyContent={{ default: 'justifyContentSpaceBetween' }}>
-                    <FlexItem>
-                      <Title headingLevel="h4" className="pf-v6-c-card__title">
-                        Red Hat OpenShift AI
-                      </Title>
-                    </FlexItem>
-                    <FlexItem>
-                      <Flex spaceItems={{ default: 'spaceItemsXs' }}>
-                        <FlexItem>
-                          <Button variant="plain" aria-label="More actions">
-                            <EllipsisVIcon />
-                          </Button>
-                        </FlexItem>
-                        <FlexItem>
-                          <Button variant="plain" aria-label="Drag to reorder">
-                            <GripVerticalIcon />
-                          </Button>
-                        </FlexItem>
-                      </Flex>
-                    </FlexItem>
-                  </Flex>
-                </CardHeader>
-                <Divider />
-                <CardBody>
-                  <Content>
-                    Create, train, and serve artificial intelligence and machine learning (AI/ML) models.
-                  </Content>
-                </CardBody>
-                <CardFooter>
-                  <Button variant="link" iconPosition="end" icon={<ExternalLinkAltIcon />}>
-                    OpenShift AI
-                  </Button>
-                </CardFooter>
-              </Card>
-              
-              <Card isFullHeight className="subscriptions-extra-wide">
-                <CardHeader>
-                  <Flex alignItems={{ default: 'alignItemsCenter' }} justifyContent={{ default: 'justifyContentSpaceBetween' }}>
-                    <FlexItem>
-                      <Title headingLevel="h4" className="pf-v6-c-card__title">
-                        Subscriptions
-                      </Title>
-                    </FlexItem>
-                    <FlexItem>
-                      <Flex spaceItems={{ default: 'spaceItemsXs' }}>
-                        <FlexItem>
-                          <Button variant="plain" aria-label="More actions">
-                            <EllipsisVIcon />
-                          </Button>
-                        </FlexItem>
-                        <FlexItem>
-                          <Button variant="plain" aria-label="Drag to reorder">
-                            <GripVerticalIcon />
-                          </Button>
-                        </FlexItem>
-                      </Flex>
-                    </FlexItem>
-                  </Flex>
-                </CardHeader>
-                <Divider />
-                <CardBody>
-                  <Flex direction={{ default: 'row' }} spaceItems={{ default: 'spaceItemsMd' }}>
-                    <FlexItem flex={{ default: 'flex_1' }}>
-                      <Alert title="Active Subscriptions" variant="info" isInline>
-                        15 active
-                      </Alert>
-                    </FlexItem>
-                    <FlexItem flex={{ default: 'flex_1' }}>
-                      <Alert title="Expiring Soon" variant="warning" isInline>
-                        3 expiring
-                      </Alert>
-                    </FlexItem>
-                    <FlexItem flex={{ default: 'flex_1' }}>
-                      <Alert title="Usage Alerts" variant="danger" isInline>
-                        2 alerts
-                      </Alert>
-                    </FlexItem>
-                    <FlexItem flex={{ default: 'flex_1' }}>
-                      <Alert title="Available Credits" variant="success" isInline>
-                        $12,500
-                      </Alert>
-                    </FlexItem>
-                  </Flex>
-                </CardBody>
-              </Card>
-            </Gallery>
-            </div>
-          </FlexItem>
-          
-          {/* Bottom Action Section */}
-          <FlexItem>
-            <div style={{ maxWidth: '1566px', margin: '0 auto', width: '100%' }}>
-              <div style={{ textAlign: 'center', marginTop: '32px' }}>
-                <Button variant="secondary" onClick={() => navigate('/all-services')} size="lg">
-                  Explore All Services
-                </Button>
+              <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+                <Alert
+                  variant="info"
+                  isInline
+                  isPlain
+                  component="p"
+                  title={
+                    <>
+                      We&apos;ve made enhancements to our dashboard, including: creating multiple, saving, sharing,
+                      duplicating and more.{' '}
+                      <Button
+                        component="a"
+                        variant="link"
+                        isInline
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                        }}
+                      >
+                        Learn more.
+                      </Button>
+                    </>
+                  }
+                />
               </div>
+              {displayWidgets.length > 0 ? (
+                <div
+                  ref={setHomepageWidgetsGridRef}
+                  className="widgets-grid homepage-readonly-grid"
+                  style={{ minWidth: 0, width: '100%', ...homepageWidgetsGridColumnStyle }}
+                  aria-label="Read-only preview of your homepage dashboard"
+                >
+                  {displayWidgets.map((widget) => (
+                    <ReadOnlyHomepageWidgetFrame
+                      key={widget.id}
+                      widget={widget}
+                      gridWidth={homepageGridWidth}
+                      placement={homepageWidgetPlacements.get(widget.id) ?? { columnStart: 1, rowStart: 1 }}
+                      autoSize={autoSizeWidgetIds.has(widget.id)}
+                      onAutoSizeFit={handleAutoSizeFit}
+                    >
+                      {renderHomepageWidgetContent(widget, {
+                        navigate,
+                        readOnly: true
+                      })}
+                    </ReadOnlyHomepageWidgetFrame>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState
+                  variant="lg"
+                  headingLevel="h2"
+                  titleText="Populate this dashboard"
+                  icon={HomepageDashboardEmptyIllustration}
+                >
+                  <EmptyStateBody>
+                    Create visual at-a-glance views of the most important information about your Red Hat systems,
+                    clusters, and more.
+                  </EmptyStateBody>
+                  <EmptyStateFooter>
+                    {isPrebuiltHubRow(homepageDashboard) ? (
+                      <Tooltip content="System default dashboards are not editable. Create a duplicate in order to edit this dashboard.">
+                        <Button
+                          variant="primary"
+                          icon={<OutlinedCloneIcon />}
+                          iconPosition="start"
+                          onClick={() => setIsDuplicateModalOpen(true)}
+                        >
+                          Duplicate dashboard
+                        </Button>
+                      </Tooltip>
+                    ) : (
+                      <Button
+                        variant="primary"
+                        icon={<PencilAltIcon />}
+                        iconPosition="start"
+                        onClick={() => navigate(`/dashboard-hub/${homepageDashboard.id}`)}
+                      >
+                        Edit dashboard
+                      </Button>
+                    )}
+                  </EmptyStateFooter>
+                </EmptyState>
+              )}
             </div>
-          </FlexItem>
-        </Flex>
+          </>
+        ) : (
+          <Content>
+            <p>
+              Set a <strong>homepage dashboard</strong> in <Link to="/dashboard-hub">Dashboard Hub</Link> (kebab menu →
+              Set as homepage) to show it here. Until then, the widget area is empty.
+            </p>
+          </Content>
+        )}
       </PageSection>
+      <CopyConfigStringModal
+        isOpen={isCopyConfigModalOpen}
+        onClose={() => setIsCopyConfigModalOpen(false)}
+        configString={copyConfigString}
+      />
+      <DuplicateDashboardModal
+        isOpen={isDuplicateModalOpen && Boolean(homepageDashboard)}
+        onClose={closeDuplicateModal}
+        rows={rows}
+        initialSourceId={homepageDashboard?.id}
+        initialSetAsHomepage
+        onSuccess={handleDuplicateModalSuccess}
+      />
+      <PinDashboardModal
+        isOpen={isPinDashboardModalOpen && Boolean(homepageDashboard)}
+        onClose={() => setIsPinDashboardModalOpen(false)}
+        dashboardId={homepageDashboard?.id ?? ''}
+        dashboardName={homepageDashboard?.name ?? ''}
+      />
     </>
   );
 };

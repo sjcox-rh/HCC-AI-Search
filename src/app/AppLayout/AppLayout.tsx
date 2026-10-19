@@ -159,7 +159,10 @@ interface MenuItem {
 
 // Create a context for help panel functions
 interface HelpPanelContextType {
-  openHelpPanelWithTab: (title: string) => void;
+  openHelpPanelWithTab: (title: string, options?: Record<string, unknown>) => void;
+  closeHelpPanel: () => void;
+  isAddWidgetsPanelOpen: boolean;
+  openHelpPanelToShareGeneralFeedback: () => void;
 }
 
 export const HelpPanelContext = React.createContext<HelpPanelContextType | undefined>(undefined);
@@ -5016,7 +5019,12 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
             {/* Help Drawer (inner, left-side) */}
             <Drawer isExpanded={isDrawerExpanded} isInline>
               <DrawerContent panelContent={drawerContent}>
-                <HelpPanelContext.Provider value={{ openHelpPanelWithTab }}>
+                <HelpPanelContext.Provider value={{
+                  openHelpPanelWithTab,
+                  closeHelpPanel: () => setIsDrawerExpanded(false),
+                  isAddWidgetsPanelOpen: isDrawerExpanded,
+                  openHelpPanelToShareGeneralFeedback: () => openHelpPanelWithTab('Share feedback'),
+                }}>
                   {children}
                 </HelpPanelContext.Provider>
               </DrawerContent>

@@ -1,8 +1,10 @@
 import * as React from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import { Homepage } from '@app/Homepage/Homepage';
 import { AllServices } from '@app/AllServices/AllServices';
 import { Dashboard } from '@app/Dashboard/Dashboard';
+import { DashboardHub } from '@app/DashboardHub/DashboardHub';
+import { EditableDashboard } from '@app/DashboardHub/EditableDashboard';
 import { AlertManager } from '@app/AlertManager/AlertManager';
 import { RoleDeleted } from '@app/AlertManager/RoleDeleted';
 import { AuthenticationPolicy } from '@app/AuthenticationPolicy/AuthenticationPolicy';
@@ -27,8 +29,10 @@ import { Workspaces } from '@app/Workspaces/Workspaces';
 import { WorkspaceDetail } from '@app/Workspaces/WorkspaceDetail';
 import { RedHatAccessRequests } from '@app/RedHatAccessRequests/RedHatAccessRequests';
 import { SearchResults } from '@app/SearchResults/SearchResults';
+import { AppearanceSettings } from '@app/Settings/Appearance/AppearanceSettings';
 import { GeneralSettings } from '@app/Settings/General/GeneralSettings';
-import { ProfileSettings } from '@app/Settings/Profile/ProfileSettings';
+import { OpenShiftBundlePage } from '@app/OpenShift/OpenShiftBundlePage';
+import { OPENSHIFT_BUNDLE_PAGES } from '@app/OpenShift/openshiftBundleNavigation';
 import { NotFound } from '@app/NotFound/NotFound';
 
 export interface IAppRoute {
@@ -68,6 +72,23 @@ const routes: AppRouteConfig[] = [
     title: 'Overview | Red Hat Hybrid Cloud Console',
   },
   {
+    element: <DashboardHub />,
+    exact: true,
+    path: '/dashboard-hub',
+    title: 'Dashboard Hub | Red Hat Hybrid Cloud Console',
+  },
+  {
+    element: <DashboardHub />,
+    exact: true,
+    path: '/dashboard',
+    title: 'Dashboard Hub | Red Hat Hybrid Cloud Console',
+  },
+  {
+    element: <EditableDashboard />,
+    path: '/dashboard-hub/:dashboardId',
+    title: 'Edit dashboard | Red Hat Hybrid Cloud Console',
+  },
+  {
     element: <AlertManager />,
     exact: true,
     label: 'Alert Manager',
@@ -99,6 +120,13 @@ const routes: AppRouteConfig[] = [
     label: 'Event Log',
     path: '/event-log',
     title: 'Event Log | Red Hat Hybrid Cloud Console',
+  },
+  {
+    element: <AppearanceSettings />,
+    exact: true,
+    label: 'Appearance',
+    path: '/settings/appearance',
+    title: 'Appearance | Red Hat Hybrid Cloud Console',
   },
   {
     element: <LearningResources />,
@@ -139,10 +167,10 @@ const routes: AppRouteConfig[] = [
     title: 'General Settings | Red Hat Hybrid Cloud Console',
   },
   {
-    element: <ProfileSettings />,
+    element: <Navigate to="/settings/appearance" replace />,
     exact: true,
     path: '/settings/profile',
-    title: 'Profile Settings | Red Hat Hybrid Cloud Console',
+    title: 'Appearance | Red Hat Hybrid Cloud Console',
   },
   {
     element: <Support />,
@@ -234,6 +262,17 @@ const routes: AppRouteConfig[] = [
     path: '/search',
     title: 'Search Results | Red Hat Hybrid Cloud Console',
   },
+  ...OPENSHIFT_BUNDLE_PAGES.map((page) => ({
+    element: (
+      <OpenShiftBundlePage
+        pageLabel={page.label}
+        showPinnedDashboard={page.showPinnedDashboard}
+      />
+    ),
+    exact: true,
+    path: page.path,
+    title: `${page.label} | OpenShift | Red Hat Hybrid Cloud Console`,
+  })),
 ];
 
 const flattenedRoutes: IAppRoute[] = routes.reduce(
