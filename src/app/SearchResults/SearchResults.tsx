@@ -27,6 +27,7 @@ import {
   HomeIcon,
   LayerGroupIcon,
   ListIcon,
+  FolderOpenIcon,
   LockIcon,
   PlayIcon,
   SearchIcon,
@@ -56,6 +57,7 @@ const resultTypeLabel: Record<ResultKind, string> = {
   host: 'Host',
   system: 'System',
   group: 'Group',
+  workspace: 'Workspace',
   suggestion: 'Suggestion',
 };
 
@@ -69,6 +71,7 @@ const resultTypeIcon: Record<ResultKind, React.ReactNode> = {
   host: <ServerIcon />,
   system: <HddIcon />,
   group: <LayerGroupIcon />,
+  workspace: <FolderOpenIcon />,
   suggestion: <SearchIcon />,
 };
 

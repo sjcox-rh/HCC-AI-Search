@@ -209,7 +209,7 @@ const WorkspaceDetail: React.FunctionComponent = () => {
               <Tabs
                 activeKey={activeSubTab}
                 onSelect={(_e, tabIndex) => setActiveSubTab(tabIndex)}
-                isSecondary
+                isSubtab
               >
                 <Tab eventKey={0} title={<TabTitleText>Roles assigned in this workspace</TabTitleText>}>
                   <div style={{ paddingTop: 'var(--pf-t--global--spacer--md)' }}>
@@ -259,7 +259,7 @@ const WorkspaceDetail: React.FunctionComponent = () => {
                     <Table aria-label="Role assignments table" className="iam-table">
                       <Thead>
                         <Tr>
-                          <Th width={5} aria-label="Select" />
+                          <Th width={10} aria-label="Select" />
                           <Th width={20} sort={{ sortBy: {}, onSort: () => {}, columnIndex: 0 }}>
                             User group name
                           </Th>
@@ -273,7 +273,7 @@ const WorkspaceDetail: React.FunctionComponent = () => {
                           <Th width={15} sort={{ sortBy: {}, onSort: () => {}, columnIndex: 4 }}>
                             Last modified
                           </Th>
-                          <Th width={5} aria-label="Actions" />
+                          <Th width={10} aria-label="Actions" />
                         </Tr>
                       </Thead>
                       <Tbody>

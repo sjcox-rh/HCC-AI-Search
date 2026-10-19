@@ -191,12 +191,12 @@ const GrantAccessWizard: React.FunctionComponent<GrantAccessWizardProps> = ({ wo
                 <Table aria-label="Select user groups" className="iam-table">
                   <Thead>
                     <Tr>
-                      <Th width={5} aria-label="Select" />
+                      <Th width={10} aria-label="Select" />
                       <Th width={50} sort={{ sortBy: {}, onSort: () => {}, columnIndex: 0 }}>
                         User group name
                       </Th>
                       <Th sort={{ sortBy: {}, onSort: () => {}, columnIndex: 1 }}>Members</Th>
-                      <Th width={5} aria-label="Actions" />
+                      <Th width={10} aria-label="Actions" />
                     </Tr>
                   </Thead>
                   <Tbody>
@@ -257,7 +257,7 @@ const GrantAccessWizard: React.FunctionComponent<GrantAccessWizardProps> = ({ wo
                 <Table aria-label="Select roles" className="iam-table">
                   <Thead>
                     <Tr>
-                      <Th width={5} aria-label="Select" />
+                      <Th width={10} aria-label="Select" />
                       <Th width={30} sort={{ sortBy: {}, onSort: () => {}, columnIndex: 0 }}>
                         Name
                       </Th>
@@ -265,7 +265,7 @@ const GrantAccessWizard: React.FunctionComponent<GrantAccessWizardProps> = ({ wo
                       <Th width={15} sort={{ sortBy: {}, onSort: () => {}, columnIndex: 2 }}>
                         Permissions
                       </Th>
-                      <Th width={5} aria-label="Actions" />
+                      <Th width={10} aria-label="Actions" />
                     </Tr>
                   </Thead>
                   <Tbody>
