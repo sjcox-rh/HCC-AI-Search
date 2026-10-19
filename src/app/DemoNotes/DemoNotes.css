@@ -1,0 +1,220 @@
+.demo-notes {
+  position: fixed;
+  inset-block: 0;
+  inset-inline-end: 0;
+  width: 280px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  background-color: #ffffff;
+  border-inline-start: 3px solid #ff69b4;
+  box-shadow: -2px 0 12px rgba(255, 105, 180, 0.25);
+  font-family: var(--pf-t--global--font--family--body);
+  font-size: 13px;
+  color: #1a1a1a;
+  transition: width 0.2s ease, min-width 0.2s ease;
+}
+
+.demo-notes--collapsed {
+  width: 0;
+  min-width: 0;
+  border-inline-start-width: 0;
+  box-shadow: none;
+}
+
+.demo-notes--collapsed .demo-notes__header,
+.demo-notes--collapsed .demo-notes__body {
+  visibility: hidden;
+}
+
+.demo-notes__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background-color: #ff69b4;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.demo-notes__title {
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+}
+
+.demo-notes__edge-toggle {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 0;
+  transform: translate(-100%, -50%);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 48px;
+  background-color: #ff69b4;
+  color: #fff;
+  border: none;
+  border-radius: 6px 0 0 6px;
+  cursor: pointer;
+  padding: 0;
+  box-shadow: -2px 0 6px rgba(255, 105, 180, 0.3);
+  font-size: 12px;
+  line-height: 1;
+}
+
+.demo-notes__edge-toggle:hover {
+  background-color: #e0559f;
+}
+
+.demo-notes__edge-arrow {
+  display: block;
+}
+
+.demo-notes__body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 12px 14px;
+}
+
+.demo-notes__intro {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: #8b4569;
+  line-height: 1.4;
+}
+
+.demo-notes__area {
+  margin-block-end: 6px;
+}
+
+.demo-notes__area-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 14px;
+  color: #b3225a;
+  text-align: start;
+  border-radius: 4px;
+}
+
+.demo-notes__area-header:hover {
+  background-color: rgba(255, 105, 180, 0.15);
+}
+
+.demo-notes__area-body {
+  padding-inline-start: 8px;
+}
+
+.demo-notes__chevron {
+  flex-shrink: 0;
+  font-size: 11px;
+  width: 14px;
+  text-align: center;
+  color: #cc3377;
+}
+
+.demo-notes__use-case {
+  margin-block-end: 2px;
+}
+
+.demo-notes__uc-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  width: 100%;
+  padding: 5px 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  color: #333;
+  text-align: start;
+  border-radius: 4px;
+  line-height: 1.35;
+}
+
+.demo-notes__uc-header:hover {
+  background-color: rgba(255, 105, 180, 0.1);
+}
+
+.demo-notes__uc-body {
+  padding-inline-start: 20px;
+  padding-block-end: 6px;
+}
+
+.demo-notes__uc-desc {
+  margin: 2px 0 8px;
+  font-size: 11.5px;
+  color: #8b4569;
+  line-height: 1.4;
+  font-style: italic;
+}
+
+.demo-notes__prompt-group {
+  margin-block-end: 8px;
+}
+
+.demo-notes__prompt-label {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 1px 6px;
+  border-radius: 3px;
+  margin-block-end: 4px;
+}
+
+.demo-notes__prompt-label--nav {
+  background-color: #e8d5f5;
+  color: #6b21a8;
+}
+
+.demo-notes__prompt-label--ai {
+  background-color: #fde68a;
+  color: #92400e;
+}
+
+.demo-notes__prompt-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.demo-notes__prompt-list li {
+  margin-block-end: 2px;
+}
+
+.demo-notes__prompt {
+  display: block;
+  width: 100%;
+  text-align: start;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 3px 6px;
+  font-size: 12.5px;
+  color: #444;
+  cursor: pointer;
+  line-height: 1.35;
+  transition: background-color 0.1s, border-color 0.1s;
+  font-family: var(--pf-t--global--font--family--mono);
+}
+
+.demo-notes__prompt:hover {
+  background-color: #fff;
+  border-color: #ff69b4;
+  color: #b3225a;
+}
+

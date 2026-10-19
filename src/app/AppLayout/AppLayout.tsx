@@ -10,6 +10,7 @@ import RedHatLogo from '@app/bgimages/redhat-logo.svg';
 import { SearchPalette } from '@app/SearchPalette/SearchPalette';
 import { getShortcutLabel } from '@app/SearchPalette/searchPaletteData';
 import '@app/SearchPalette/SearchPalette.css';
+import { DemoNotes } from '@app/DemoNotes/DemoNotes';
 import {
   Avatar,
   Badge,
@@ -5034,6 +5035,13 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
         query={aiSearchQuery}
         onQueryChange={setAiSearchQuery}
         anchorRef={aiSearchFieldRef}
+      />
+
+      <DemoNotes
+        onPromptClick={(prompt) => {
+          setAiSearchQuery(prompt);
+          setIsSearchPaletteOpen(true);
+        }}
       />
       
       {/* Full-width Services Drawer under Masthead */}
