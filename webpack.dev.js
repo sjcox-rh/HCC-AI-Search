@@ -10,6 +10,9 @@ const PORT = process.env.PORT || '9000';
 export default merge(common('development'), {
   mode: 'development',
   devtool: 'eval-source-map',
+  output: {
+    publicPath: '/',
+  },
   devServer: {
     host: HOST,
     port: PORT,
