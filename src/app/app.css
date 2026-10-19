@@ -5,7 +5,18 @@ body,
 }
 
 .pf-v6-c-content {
-  --pf-v6-c-content--small--Color: var(--pf-t--global--color--status--danger--default); /* changes all <small> color to the semantic token for danger */
-  --pf-v6-c-content--blockquote--BorderLeftColor: var(--pf-t--global--color--nonstatus--purple--default); /* changes all <blockquote> left border color to the semantic token for non-status (purple) */
-  --pf-v6-c-content--hr--BackgroundColor: var(--pf-t--global--color--nonstatus--yellow--default); /* changes a <hr> color to the semantic token for non-status (yellow) */
+  --pf-v6-c-content--small--Color: var(--pf-t--global--color--status--danger--default);
+  --pf-v6-c-content--blockquote--BorderLeftColor: var(--pf-t--global--color--nonstatus--purple--default);
+  --pf-v6-c-content--hr--BackgroundColor: var(--pf-t--global--color--nonstatus--yellow--default);
+}
+
+.iam-table.pf-v6-c-table tbody tr td,
+.iam-table.pf-v6-c-table thead tr th {
+  padding-block: var(--pf-t--global--spacer--md);
+  padding-inline: var(--pf-t--global--spacer--md);
+}
+
+.iam-table.pf-v6-c-table thead tr th:first-child,
+.iam-table.pf-v6-c-table tbody tr td:first-child {
+  padding-inline-start: var(--pf-t--global--spacer--lg);
 }

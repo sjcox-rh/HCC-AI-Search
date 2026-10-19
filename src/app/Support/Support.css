@@ -1,0 +1,15 @@
+.support-cases-table.pf-v6-c-table tbody tr td,
+.support-cases-table.pf-v6-c-table thead tr th {
+  padding-block: var(--pf-t--global--spacer--md);
+  padding-inline: var(--pf-t--global--spacer--md);
+}
+
+.support-cases-table.pf-v6-c-table thead tr th:first-child,
+.support-cases-table.pf-v6-c-table tbody tr td:first-child {
+  padding-inline-start: var(--pf-t--global--spacer--lg);
+}
+
+.support-cases-table.pf-v6-c-table thead tr th:last-child,
+.support-cases-table.pf-v6-c-table tbody tr td:last-child {
+  padding-inline-end: var(--pf-t--global--spacer--lg);
+}

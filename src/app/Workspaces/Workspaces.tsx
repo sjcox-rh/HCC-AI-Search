@@ -3,110 +3,258 @@ import {
   Breadcrumb,
   BreadcrumbItem,
   Button,
-  Card,
-  CardBody,
   Content,
-  Flex,
-  FlexItem,
+  Dropdown,
+  DropdownItem,
+  DropdownList,
+  MenuToggle,
   PageSection,
-  Tab,
-  TabTitleText,
-  Tabs,
-  Title
+  Pagination,
+  SearchInput,
+  Title,
+  Toolbar,
+  ToolbarContent,
+  ToolbarItem,
 } from '@patternfly/react-core';
-import { BuildIcon, ExternalLinkAltIcon } from '@patternfly/react-icons';
+import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
+import { AngleRightIcon, AngleDownIcon, EllipsisVIcon, ExternalLinkAltIcon } from '@patternfly/react-icons';
+import { useNavigate } from 'react-router-dom';
+
+interface WorkspaceRow {
+  id: string;
+  name: string;
+  description: string;
+  level: number;
+  parent?: string;
+  children?: string[];
+}
+
+const workspaceData: WorkspaceRow[] = [
+  {
+    id: 'red-hat-uxd',
+    name: 'Red Hat UXD',
+    description: 'Root workspace for the UXD organization.',
+    level: 0,
+    children: ['production', 'development', 'cost-management', 'compliance-security', 'default'],
+  },
+  {
+    id: 'production',
+    name: 'Production',
+    description: 'Production infrastructure, clusters, and host systems.',
+    level: 1,
+    parent: 'red-hat-uxd',
+  },
+  {
+    id: 'development',
+    name: 'Development',
+    description: 'Development and staging environments for application teams.',
+    level: 1,
+    parent: 'red-hat-uxd',
+  },
+  {
+    id: 'cost-management',
+    name: 'Cost Management',
+    description: 'Subscription tracking, spend analysis, and cost optimization resources.',
+    level: 1,
+    parent: 'red-hat-uxd',
+  },
+  {
+    id: 'compliance-security',
+    name: 'Compliance & Security',
+    description: 'Compliance auditing, vulnerability management, and security policy resources.',
+    level: 1,
+    parent: 'red-hat-uxd',
+  },
+  {
+    id: 'default',
+    name: 'Default',
+    description: 'Default workspace for ungrouped and unassigned resources.',
+    level: 1,
+    parent: 'red-hat-uxd',
+  },
+];
 
 const Workspaces: React.FunctionComponent = () => {
-  const [activeTabKey, setActiveTabKey] = React.useState<string | number>(0);
+  const navigate = useNavigate();
+  const [expandedRows, setExpandedRows] = React.useState<Set<string>>(new Set(['red-hat-uxd']));
+  const [searchValue, setSearchValue] = React.useState('');
+  const [kebabOpen, setKebabOpen] = React.useState<string | null>(null);
 
-  const handleTabClick = (event: React.MouseEvent<HTMLElement> | React.KeyboardEvent | MouseEvent, tabIndex: string | number) => {
-    setActiveTabKey(tabIndex);
+  const toggleExpand = (id: string) => {
+    setExpandedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
   };
+
+  const expandAll = () => {
+    const parents = workspaceData.filter((w) => w.children && w.children.length > 0).map((w) => w.id);
+    setExpandedRows(new Set(parents));
+  };
+
+  const visibleRows = workspaceData.filter((row) => {
+    if (row.level === 0) return true;
+    if (row.parent && expandedRows.has(row.parent)) return true;
+    return false;
+  });
+
+  const filteredRows = searchValue
+    ? visibleRows.filter((row) => row.name.toLowerCase().includes(searchValue.toLowerCase()))
+    : visibleRows;
 
   return (
     <>
       <PageSection hasBodyWrapper={false}>
         <Breadcrumb>
-          <BreadcrumbItem>IAM</BreadcrumbItem>
-          <BreadcrumbItem>User Access</BreadcrumbItem>
+          <BreadcrumbItem
+            to="#"
+            onClick={(e) => {
+              e.preventDefault();
+              navigate('/my-user-access');
+            }}
+          >
+            Identity &amp; Access Management
+          </BreadcrumbItem>
+          <BreadcrumbItem
+            to="#"
+            onClick={(e) => {
+              e.preventDefault();
+              navigate('/user-access');
+            }}
+          >
+            User Access
+          </BreadcrumbItem>
           <BreadcrumbItem isActive>Workspaces</BreadcrumbItem>
         </Breadcrumb>
       </PageSection>
-      
+
       <PageSection hasBodyWrapper={false}>
-        <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
-          <FlexItem>
-            <div className="pf-m-align-self-center" style={{ minWidth: '40px' }}>
-              <BuildIcon style={{ fontSize: '32px', color: '#0066cc' }} aria-label="page-header-icon" />
-            </div>
-          </FlexItem>
-          <FlexItem alignSelf={{ default: 'alignSelfStretch' }}>
-            <div style={{ borderLeft: '1px solid #d2d2d2', height: '100%', marginRight: '16px' }}></div>
-          </FlexItem>
-          <FlexItem flex={{ default: 'flex_1' }}>
-            <div>
-              <Title headingLevel="h1" size="2xl">Workspaces</Title>
-              <Content>
-                <p style={{ margin: 0, color: '#6a6e73' }}>Manage workspaces and project environments for teams and collaborative work across Red Hat services.</p>
-                <div style={{ marginTop: '12px' }}>
+        <Title headingLevel="h1" size="2xl">
+          Workspaces
+        </Title>
+        <Content component="p" style={{ marginTop: 'var(--pf-t--global--spacer--sm)', color: 'var(--pf-t--global--text--color--subtle)' }}>
+          Workspaces provide a flexible, hierarchical, approach to organizing your assets and streamlining access
+          management. Configure workspaces to fit your organizational structure.
+        </Content>
+        <Button
+          variant="link"
+          isInline
+          icon={<ExternalLinkAltIcon />}
+          iconPosition="end"
+          component="a"
+          href="#"
+          style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}
+        >
+          Learn more about workspaces
+        </Button>
+      </PageSection>
+
+      <PageSection hasBodyWrapper={false} style={{ paddingTop: 0 }}>
+        <Toolbar>
+          <ToolbarContent>
+            <ToolbarItem>
+              <SearchInput
+                placeholder="Find by name"
+                value={searchValue}
+                onChange={(_event, value) => setSearchValue(value)}
+                onClear={() => setSearchValue('')}
+                style={{ width: '240px' }}
+              />
+            </ToolbarItem>
+            <ToolbarItem>
+              <Button variant="primary" onClick={() => {}}>
+                Create workspace
+              </Button>
+            </ToolbarItem>
+            <ToolbarItem variant="pagination" align={{ default: 'alignEnd' }}>
+              <Pagination
+                itemCount={filteredRows.length}
+                perPage={10}
+                page={1}
+                isCompact
+              />
+            </ToolbarItem>
+          </ToolbarContent>
+        </Toolbar>
+
+        <Table aria-label="Workspaces table" className="iam-table">
+          <Thead>
+            <Tr>
+              <Th width={10} aria-label="Expand">
+                <Button variant="plain" aria-label="Expand all" onClick={expandAll} style={{ padding: 0 }}>
+                  <AngleRightIcon />
+                </Button>
+              </Th>
+              <Th width={30}>Name</Th>
+              <Th>Description</Th>
+              <Th width={10} aria-label="Actions" />
+            </Tr>
+          </Thead>
+          <Tbody>
+            {filteredRows.map((row) => (
+              <Tr
+                key={row.id}
+                style={row.level > 0 ? { paddingLeft: `${row.level * 32}px` } : undefined}
+              >
+                <Td dataLabel="Expand">
+                  {row.children && row.children.length > 0 ? (
+                    <Button
+                      variant="plain"
+                      aria-label={expandedRows.has(row.id) ? 'Collapse' : 'Expand'}
+                      onClick={() => toggleExpand(row.id)}
+                      style={{ padding: 0 }}
+                    >
+                      {expandedRows.has(row.id) ? <AngleDownIcon /> : <AngleRightIcon />}
+                    </Button>
+                  ) : (
+                    <span style={{ display: 'inline-block', width: '24px', paddingLeft: row.level > 0 ? '16px' : '0' }} />
+                  )}
+                </Td>
+                <Td dataLabel="Name">
                   <Button
                     variant="link"
                     isInline
-                    icon={<ExternalLinkAltIcon />}
-                    iconPosition="end"
-                    component="a"
-                    href="https://docs.redhat.com/en/documentation/red_hat_hybrid_cloud_console/"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    onClick={() => navigate(`/workspaces/${row.id}`)}
                   >
-                    Learn more
+                    {row.name}
                   </Button>
-                </div>
-              </Content>
-            </div>
-          </FlexItem>
-        </Flex>
-      </PageSection>
-      
-      <PageSection hasBodyWrapper={false} style={{ paddingTop: 0 }}>
-        <Tabs activeKey={activeTabKey} onSelect={handleTabClick}>
-          <Tab eventKey={0} title={<TabTitleText>All Workspaces</TabTitleText>}>
-            <PageSection>
-              <Card>
-                <CardBody>
-                  <Content>
-                    <Title headingLevel="h2" size="xl">Workspace Management</Title>
-                    <p>
-                      Create and manage workspaces for teams to collaborate on projects and access shared resources. 
-                      Control workspace permissions and member access across your organization.
-                    </p>
-                    
-                    <h3>Workspace Features:</h3>
-                    <ul>
-                      <li><strong>Workspace Creation:</strong> Set up dedicated environments for teams and projects</li>
-                      <li><strong>Member Management:</strong> Add and remove workspace members with appropriate permissions</li>
-                      <li><strong>Resource Sharing:</strong> Share resources and configurations within workspaces</li>
-                      <li><strong>Access Control:</strong> Configure workspace-level permissions and access policies</li>
-                      <li><strong>Project Organization:</strong> Organize related projects and resources within workspaces</li>
-                    </ul>
-                  </Content>
-                </CardBody>
-              </Card>
-            </PageSection>
-          </Tab>
-          <Tab eventKey={1} title={<TabTitleText>Workspace Settings</TabTitleText>}>
-            <PageSection>
-              <Card>
-                <CardBody>
-                  <Content>
-                    <Title headingLevel="h2" size="xl">Workspace Configuration</Title>
-                    <p>Configure workspace settings, policies, and organizational preferences.</p>
-                  </Content>
-                </CardBody>
-              </Card>
-            </PageSection>
-          </Tab>
-        </Tabs>
+                </Td>
+                <Td dataLabel="Description">{row.description}</Td>
+                <Td dataLabel="Actions" isActionCell>
+                  <Dropdown
+                    isOpen={kebabOpen === row.id}
+                    onSelect={() => setKebabOpen(null)}
+                    onOpenChange={(isOpen) => setKebabOpen(isOpen ? row.id : null)}
+                    toggle={(toggleRef) => (
+                      <MenuToggle
+                        ref={toggleRef}
+                        variant="plain"
+                        onClick={() => setKebabOpen(kebabOpen === row.id ? null : row.id)}
+                        isExpanded={kebabOpen === row.id}
+                        aria-label={`Actions for ${row.name}`}
+                      >
+                        <EllipsisVIcon />
+                      </MenuToggle>
+                    )}
+                    popperProps={{ position: 'right' }}
+                  >
+                    <DropdownList>
+                      <DropdownItem key="edit">Edit</DropdownItem>
+                      <DropdownItem key="delete" style={{ color: 'var(--pf-t--global--color--status--danger--default)' }}>
+                        Delete
+                      </DropdownItem>
+                    </DropdownList>
+                  </Dropdown>
+                </Td>
+              </Tr>
+            ))}
+          </Tbody>
+        </Table>
       </PageSection>
     </>
   );

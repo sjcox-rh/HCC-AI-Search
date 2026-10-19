@@ -22,6 +22,7 @@ import {
   AngleRightIcon,
   BookOpenIcon,
   ClusterIcon,
+  FolderOpenIcon,
   HddIcon,
   HomeIcon,
   LayerGroupIcon,
@@ -34,14 +35,18 @@ import {
 } from '@patternfly/react-icons';
 import SparkleIcon from '@app/bgimages/sparkle-icon.svg';
 import {
-  commonActions,
+  getCommonActions,
   getContextualSuggestions,
+  getMatchingPrefixes,
   getShortcutLabel,
   PaletteAction,
   PaletteResultKind,
-  recentEntities,
+  parseQuery,
+  recentEntities as defaultRecentEntities,
   resolveQuery,
+  searchPrefixes,
   SearchNavTarget,
+  SearchPrefix,
 } from './searchPaletteData';
 import { SearchFeedback } from './SearchFeedback';
 import {
@@ -80,6 +85,7 @@ const resultTypeLabel: Record<ResultKind, string> = {
   host: 'Host',
   system: 'System',
   group: 'Group',
+  workspace: 'Workspace',
   suggestion: 'Suggestion',
 };
 
@@ -107,6 +113,7 @@ const kindToGroup = (kind: ResultKind): ResultGroupKey => {
     case 'host':
     case 'system':
     case 'group':
+    case 'workspace':
       return 'inventories';
     case 'documentation':
       return 'learning';
@@ -129,7 +136,32 @@ const resultTypeIcon: Record<ResultKind, React.ReactNode> = {
   host: <ServerIcon />,
   system: <HddIcon />,
   group: <LayerGroupIcon />,
+  workspace: <FolderOpenIcon />,
   suggestion: <SearchIcon />,
+};
+
+const MAX_HISTORY = 8;
+let sessionHistory: PaletteAction[] = [];
+let historyListeners: Array<() => void> = [];
+
+const addToHistory = (item: PaletteAction) => {
+  const entry: PaletteAction = {
+    ...item,
+    id: `history-${item.id}`,
+  };
+  sessionHistory = [entry, ...sessionHistory.filter((h) => h.id !== entry.id)].slice(0, MAX_HISTORY);
+  historyListeners.forEach((fn) => fn());
+};
+
+const useSessionHistory = (): PaletteAction[] => {
+  const [, forceUpdate] = React.useReducer((x: number) => x + 1, 0);
+  React.useEffect(() => {
+    historyListeners.push(forceUpdate);
+    return () => {
+      historyListeners = historyListeners.filter((fn) => fn !== forceUpdate);
+    };
+  }, []);
+  return sessionHistory.length > 0 ? sessionHistory : defaultRecentEntities;
 };
 
 const kindForItem = (item: PaletteAction): ResultKind => {
@@ -175,6 +207,7 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
   const [selectedServiceId, setSelectedServiceId] = React.useState(DEFAULT_SERVICE_ID);
   const [favoritedItems, setFavoritedItems] = React.useState<Set<string>>(new Set());
   const [collapsedGroups, setCollapsedGroups] = React.useState<Set<ResultGroupKey>>(new Set());
+  const recentEntities = useSessionHistory();
   const selectedService = getSelectedService(selectedServiceId);
   const showSearchShortcuts = selectedServiceId === DEFAULT_SERVICE_ID && favoritedItems.size === 0;
 
@@ -204,7 +237,9 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
 
   const hasQuery = query.trim().length > 0;
   const resolution = React.useMemo(() => resolveQuery(query), [query]);
+  const commonActions = React.useMemo(() => getCommonActions(currentPath), [currentPath]);
   const suggestions = React.useMemo(() => getContextualSuggestions(currentPath), [currentPath]);
+  const matchingPrefixes = React.useMemo(() => getMatchingPrefixes(query), [query]);
   const hasResults = Boolean(
     resolution.answer ||
       resolution.actions.length ||
@@ -247,31 +282,39 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
 
   const runAction = React.useCallback(
     (action: PaletteAction) => {
-      if (action.id === 'ai-guidance') {
+      const rawId = action.id.replace(/^(history-|top-)/, '');
+      if (rawId === 'ai-guidance') {
+        addToHistory(action);
         applyQuery('Which OpenShift clusters are running out of storage?');
         return;
       }
-      if (action.id === 'ctx-home-cve' || action.id === 'ctx-cves') {
+      if (rawId === 'ctx-home-cve' || rawId === 'ctx-cves') {
+        addToHistory(action);
         applyQuery('Show me all RHEL 8 servers with critical CVEs in production');
         return;
       }
-      if (action.id === 'ctx-home-storage') {
+      if (rawId === 'ctx-home-storage') {
+        addToHistory(action);
         applyQuery('Which OpenShift clusters are running out of storage?');
         return;
       }
-      if (action.id === 'ctx-patch') {
+      if (rawId === 'ctx-patch') {
+        addToHistory(action);
         applyQuery('Generate patch status report');
         return;
       }
       if (action.access === 'restricted') {
+        addToHistory(action);
         goTo(action.requestAccess);
         return;
       }
       if (action.playbook) {
+        addToHistory(action);
         runPlaybook();
         return;
       }
       if (action.nav) {
+        addToHistory(action);
         goTo(action.nav);
       }
     },
@@ -316,28 +359,49 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
       }
     };
 
-    resolution.actions.forEach((item) => {
-      const kind = kindForItem(item);
-      if (kind === 'service') addIfNew(item, kind);
-    });
-    if (resolution.entities.length > 0) {
-      const item = resolution.entities[0];
-      addIfNew(item, entityKind(item));
+    const queryLower = query.toLowerCase();
+    const entityKinds = resolution.entities.map((item) => ({ item, kind: entityKind(item) }));
+    const dominantKind = entityKinds.length > 0
+      ? entityKinds.reduce<Record<string, number>>((acc, { kind }) => { acc[kind] = (acc[kind] || 0) + 1; return acc; }, {})
+      : {};
+    const topEntityKind = Object.entries(dominantKind).sort((a, b) => b[1] - a[1])[0]?.[0] as ResultKind | undefined;
+    const isEntityFocused = topEntityKind && (
+      queryLower.includes(topEntityKind) ||
+      (dominantKind[topEntityKind] || 0) >= 3
+    );
+
+    if (isEntityFocused) {
+      entityKinds
+        .filter(({ kind }) => kind === topEntityKind)
+        .forEach(({ item, kind }) => addIfNew(item, kind));
+      resolution.actions.forEach((item) => addIfNew(item, kindForItem(item)));
+      entityKinds
+        .filter(({ kind }) => kind !== topEntityKind)
+        .forEach(({ item, kind }) => addIfNew(item, kind));
+    } else {
+      resolution.actions.forEach((item) => {
+        const kind = kindForItem(item);
+        if (kind === 'service') addIfNew(item, kind);
+      });
+      if (resolution.entities.length > 0) {
+        const item = resolution.entities[0];
+        addIfNew(item, entityKind(item));
+      }
+      if (resolution.docs.length > 0) {
+        const item = resolution.docs[0];
+        addIfNew(item, (item.kind || 'documentation') as ResultKind);
+      }
+      resolution.actions.forEach((item) => {
+        const kind = kindForItem(item);
+        if (kind !== 'service') addIfNew(item, kind);
+      });
+      resolution.entities.slice(1).forEach((item) => {
+        addIfNew(item, entityKind(item));
+      });
     }
-    if (resolution.docs.length > 0) {
-      const item = resolution.docs[0];
-      addIfNew(item, (item.kind || 'documentation') as ResultKind);
-    }
-    resolution.actions.forEach((item) => {
-      const kind = kindForItem(item);
-      if (kind !== 'service') addIfNew(item, kind);
-    });
-    resolution.entities.slice(1).forEach((item) => {
-      addIfNew(item, entityKind(item));
-    });
 
     return top;
-  }, [hasQuery, resolution]);
+  }, [hasQuery, query, resolution]);
 
   const flatItems = React.useMemo((): FlatItem[] => {
     const items: FlatItem[] = [];
@@ -419,6 +483,13 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
       if (event.key === 'Enter' && isInputField && hasQuery) {
         event.preventDefault();
         event.stopPropagation();
+        addToHistory({
+          id: `search-${query.trim()}`,
+          title: query.trim(),
+          meta: 'Search query',
+          kind: 'suggestion',
+          nav: { route: `/search?q=${encodeURIComponent(query.trim())}` },
+        });
         closeAndReset();
         navigate(`/search?q=${encodeURIComponent(query.trim())}`);
         return;
@@ -661,23 +732,85 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
                   </div>
                 ) : (
                   <div role="listbox" aria-label="Search suggestions">
-                    {sectionTitle('Common actions')}
-                    {commonActions.map((item) => renderRow(item, kindForItem(item)))}
-
-                    {sectionTitle('Suggestions')}
-                    {suggestions.map((item) => renderRow(item, 'suggestion'))}
+                    <div className="ai-search-palette__two-col">
+                      <div className="ai-search-palette__two-col-item">
+                        {sectionTitle('Common actions')}
+                        {commonActions.map((item) => renderRow(item, kindForItem(item)))}
+                      </div>
+                      <div className="ai-search-palette__two-col-item">
+                        {sectionTitle('Suggestions')}
+                        {suggestions.map((item) => renderRow(item, 'suggestion'))}
+                      </div>
+                    </div>
 
                     {sectionTitle('Recent history')}
                     {recentEntities.map((item) => renderRow(item, entityKind(item)))}
+
+                    {sectionTitle('Prefixed search')}
+                    <div className="ai-search-palette__prefix-hints">
+                      {searchPrefixes.map((p) => (
+                        <button
+                          key={p.key}
+                          type="button"
+                          className="ai-search-palette__prefix-chip"
+                          onClick={() => {
+                            if (onQueryChange) {
+                              onQueryChange(p.label);
+                            }
+                          }}
+                        >
+                          <Label isCompact color="blue">{p.label}</Label>
+                          <span>{p.description}</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
               </SplitItem>
             </Split>
           )}
 
+          {hasQuery && matchingPrefixes.length > 0 && !resolution.prefix && (
+            <div className="ai-search-palette__prefix-suggestions">
+              <span className="ai-search-palette__prefix-suggestions-label">Filter by type</span>
+              <div className="ai-search-palette__prefix-suggestions-row">
+                {matchingPrefixes.map((p) => (
+                  <button
+                    key={p.key}
+                    type="button"
+                    className="ai-search-palette__prefix-chip"
+                    onClick={() => onQueryChange(p.label)}
+                  >
+                    <Label isCompact color="blue">{p.label}</Label>
+                    <span>{p.description}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {hasQuery && (
           <div role="listbox" aria-label="Search results">
-            {resolution.answer && (
+            {resolution.prefix && (
+              <div className="ai-search-palette__prefix-active">
+                <Label color="blue" isCompact>{resolution.prefix.label}</Label>
+                <span>{resolution.prefix.description}</span>
+                <Button
+                  variant="plain"
+                  isInline
+                  size="sm"
+                  onClick={() => {
+                    const parsed = parseQuery(query);
+                    onQueryChange(parsed.term || '');
+                  }}
+                  style={{ marginInlineStart: 'auto', fontSize: 'var(--pf-t--global--font--size--body--sm)' }}
+                >
+                  Clear filter
+                </Button>
+              </div>
+            )}
+
+            {resolution.answer && !resolution.prefix && (
               <div className="ai-search-palette__ai-hint">
                 <img src={SparkleIcon} alt="" width={14} height={14} />
                 <Content component="small">

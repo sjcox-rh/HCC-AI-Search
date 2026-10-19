@@ -1545,7 +1545,8 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
     }
     
     // IAM bundle pages
-    if (['/my-user-access', '/user-access', '/users', '/groups', '/roles', '/workspaces', '/red-hat-access-requests', '/authentication-policy', '/service-accounts', '/learning-resources-iam'].includes(currentPath)) {
+    const iamPages = ['/my-user-access', '/user-access', '/users', '/groups', '/roles', '/workspaces', '/red-hat-access-requests', '/authentication-policy', '/service-accounts', '/learning-resources-iam'];
+    if (iamPages.some((p) => currentPath === p || currentPath.startsWith(p + '/'))) {
       return 'IAM';
     }
     
@@ -4455,6 +4456,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   // Define navigation groups
   const primaryNavPages = ['/overview', '/alert-manager', '/data-integration', '/event-log', '/learning-resources'];
   const secondaryNavPages = ['/my-user-access', '/user-access', '/users', '/groups', '/roles', '/workspaces', '/red-hat-access-requests', '/authentication-policy', '/service-accounts', '/learning-resources-iam'];
+  const supportNavPages = ['/support'];
 
   // Determine which navigation structure to show
   const getNavigationType = () => {
@@ -4462,7 +4464,9 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
     
     if (primaryNavPages.includes(currentPath)) {
       return 'primary';
-    } else if (secondaryNavPages.includes(currentPath)) {
+    } else if (supportNavPages.some((p) => currentPath === p || currentPath.startsWith(p + '/') || currentPath.startsWith('/support'))) {
+      return 'support';
+    } else if (secondaryNavPages.some((p) => currentPath === p || currentPath.startsWith(p + '/'))) {
       return 'secondary';
     }
     return 'primary'; // default fallback
@@ -4477,69 +4481,109 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   });
 
   // Secondary navigation structure (IAM bundle)
+  const currentPath = location.pathname;
   const secondaryNavItems = [
-    { label: 'My User Access', path: '/my-user-access', isActive: location.pathname === '/my-user-access' },
+    { label: 'My User Access', path: '/my-user-access', isActive: currentPath === '/my-user-access' },
     { 
       label: 'User Access', 
       path: '/user-access', 
-      isActive: ['/user-access', '/users', '/groups', '/roles', '/workspaces', '/red-hat-access-requests'].includes(location.pathname),
+      isActive: currentPath === '/user-access' || currentPath.startsWith('/users') || currentPath.startsWith('/groups') || currentPath.startsWith('/roles') || currentPath.startsWith('/workspaces') || currentPath === '/red-hat-access-requests',
       isExpandable: true,
       subItems: [
-        { label: 'Overview', path: '/user-access', isActive: location.pathname === '/user-access' },
-        { label: 'Users', path: '/users', isActive: location.pathname === '/users' },
-        { label: 'Groups', path: '/groups', isActive: location.pathname === '/groups' },
-        { label: 'Roles', path: '/roles', isActive: location.pathname === '/roles' },
-        { label: 'Workspaces', path: '/workspaces', isActive: location.pathname === '/workspaces' },
-        { label: 'Red Hat Access Requests', path: '/red-hat-access-requests', isActive: location.pathname === '/red-hat-access-requests' },
+        { label: 'Overview', path: '/user-access', isActive: currentPath === '/user-access' },
+        { label: 'Users', path: '/users', isActive: currentPath.startsWith('/users') },
+        { label: 'Groups', path: '/groups', isActive: currentPath.startsWith('/groups') },
+        { label: 'Roles', path: '/roles', isActive: currentPath.startsWith('/roles') },
+        { label: 'Workspaces', path: '/workspaces', isActive: currentPath.startsWith('/workspaces') },
+        { label: 'Red Hat Access Requests', path: '/red-hat-access-requests', isActive: currentPath === '/red-hat-access-requests' },
       ]
     },
-    { label: 'Authentication Policy', path: '/authentication-policy', isActive: location.pathname === '/authentication-policy' },
-    { label: 'Service Accounts', path: '/service-accounts', isActive: location.pathname === '/service-accounts' },
-    { label: 'IAM Learning', path: '/learning-resources-iam', isActive: location.pathname === '/learning-resources-iam' },
+    { label: 'Authentication Policy', path: '/authentication-policy', isActive: currentPath === '/authentication-policy' },
+    { label: 'Service Accounts', path: '/service-accounts', isActive: currentPath === '/service-accounts' },
+    { label: 'IAM Learning', path: '/learning-resources-iam', isActive: currentPath === '/learning-resources-iam' },
   ];
+
+  const supportNavItems = [
+    { label: 'Dashboard', path: '/support', isActive: currentPath === '/support' },
+    { label: 'OpenShift cluster analyzer', path: '/support', isActive: false },
+    {
+      label: 'Management',
+      path: '/support/cases',
+      isActive: currentPath.startsWith('/support/case'),
+      isExpandable: true,
+      subItems: [
+        { label: 'Support cases', path: '/support/cases', isActive: currentPath === '/support/cases' || currentPath.startsWith('/support/case/') || currentPath === '/support/cases/new' },
+        { label: 'Email notifications', path: '/support', isActive: false },
+        { label: 'Partnerships', path: '/support', isActive: false },
+      ],
+    },
+    { label: 'Preferences', path: '/support', isActive: false },
+  ];
+
+  const renderBundleNav = (items: typeof secondaryNavItems) =>
+    items.map((item, idx) => (
+      item.isExpandable ? (
+        <NavExpandable
+          key={`nav-expandable-${idx}`}
+          id={`nav-expandable-${idx}`}
+          title={item.label}
+          isActive={item.isActive}
+          isExpanded={item.isActive}
+        >
+          {item.subItems?.map((subItem, subIdx) => (
+            <NavItem key={`nav-sub-${idx}-${subIdx}`} id={`nav-sub-${idx}-${subIdx}`} isActive={subItem.isActive}>
+              <NavLink to={subItem.path}>
+                {subItem.label}
+              </NavLink>
+            </NavItem>
+          ))}
+        </NavExpandable>
+      ) : (
+        <NavItem key={`nav-${idx}`} id={`nav-${idx}`} isActive={item.isActive}>
+          <NavLink to={item.path}>
+            {item.label}
+          </NavLink>
+        </NavItem>
+      )
+    ));
 
   const Navigation = (
     <Nav id="nav-primary-simple">
       <NavList id="nav-list-simple">
         {navigationType === 'primary' ? (
-          // Show primary navigation
-          primaryNavRoutes.map((route, idx) => 
+          primaryNavRoutes.map((route, idx) =>
             route.label && renderNavItem(route, idx)
           )
+        ) : navigationType === 'support' ? (
+          renderBundleNav(supportNavItems)
         ) : (
-          // Show secondary navigation (IAM bundle)
-          secondaryNavItems.map((item, idx) => (
-            item.isExpandable ? (
-              <NavExpandable
-                key={`secondary-expandable-${idx}`}
-                id={`secondary-expandable-${idx}`}
-                title={item.label}
-                isActive={item.isActive}
-              >
-                {item.subItems?.map((subItem, subIdx) => (
-                  <NavItem key={`secondary-sub-${idx}-${subIdx}`} id={`secondary-sub-${idx}-${subIdx}`} isActive={subItem.isActive}>
-                    <NavLink to={subItem.path}>
-                      {subItem.label}
-                    </NavLink>
-                  </NavItem>
-                ))}
-              </NavExpandable>
-            ) : (
-              <NavItem key={`secondary-${idx}`} id={`secondary-${idx}`} isActive={item.isActive}>
-                <NavLink to={item.path}>
-                  {item.label}
-                </NavLink>
-              </NavItem>
-            )
-          ))
+          renderBundleNav(secondaryNavItems)
         )}
       </NavList>
     </Nav>
   );
 
+  const sidebarTitle = navigationType === 'support'
+    ? 'Customer Support'
+    : navigationType === 'secondary'
+      ? 'Identity & Access\nManagement'
+      : null;
+
   const Sidebar = (
     <PageSidebar>
-      <PageSidebarBody>{Navigation}</PageSidebarBody>
+      <PageSidebarBody>
+        {sidebarTitle && (
+          <div style={{
+            padding: 'var(--pf-t--global--spacer--md) var(--pf-t--global--spacer--md) var(--pf-t--global--spacer--sm)',
+            fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as unknown as number,
+            fontSize: 'var(--pf-t--global--font--size--body--default)',
+            whiteSpace: 'pre-line',
+          }}>
+            {sidebarTitle}
+          </div>
+        )}
+        {Navigation}
+      </PageSidebarBody>
     </PageSidebar>
   );
 

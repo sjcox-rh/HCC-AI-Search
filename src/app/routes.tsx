@@ -14,11 +14,17 @@ import { MyUserAccess } from '@app/MyUserAccess/MyUserAccess';
 import { ServiceAccounts } from '@app/ServiceAccounts/ServiceAccounts';
 import { UserAccess } from '@app/UserAccess/UserAccess';
 import { Support } from '@app/Support/Support';
+import { SupportCases } from '@app/Support/SupportCases';
+import { SupportCaseDetail } from '@app/Support/SupportCaseDetail';
+import { SupportNewCase } from '@app/Support/SupportNewCase';
 import { Users } from '@app/Users/Users';
 import { Groups } from '@app/Groups/Groups';
+import { GroupDetail } from '@app/Groups/GroupDetail';
 import { Roles } from '@app/Roles/Roles';
+import { RoleDetail } from '@app/Roles/RoleDetail';
 import { AlertOverriderRole } from '@app/Roles/AlertOverriderRole';
 import { Workspaces } from '@app/Workspaces/Workspaces';
+import { WorkspaceDetail } from '@app/Workspaces/WorkspaceDetail';
 import { RedHatAccessRequests } from '@app/RedHatAccessRequests/RedHatAccessRequests';
 import { SearchResults } from '@app/SearchResults/SearchResults';
 import { GeneralSettings } from '@app/Settings/General/GeneralSettings';
@@ -145,6 +151,24 @@ const routes: AppRouteConfig[] = [
     title: 'Support | Red Hat Hybrid Cloud Console',
   },
   {
+    element: <SupportCases />,
+    exact: true,
+    path: '/support/cases',
+    title: 'Support Cases | Red Hat Hybrid Cloud Console',
+  },
+  {
+    element: <SupportNewCase />,
+    exact: true,
+    path: '/support/cases/new',
+    title: 'Open a Support Case | Red Hat Hybrid Cloud Console',
+  },
+  {
+    element: <SupportCaseDetail />,
+    exact: true,
+    path: '/support/case/:caseId',
+    title: 'Case Detail | Red Hat Hybrid Cloud Console',
+  },
+  {
     element: <LearningResourcesIAM />,
     exact: true,
     path: '/learning-resources-iam',
@@ -163,10 +187,22 @@ const routes: AppRouteConfig[] = [
     title: 'Groups | Red Hat Hybrid Cloud Console',
   },
   {
+    element: <GroupDetail />,
+    exact: true,
+    path: '/groups/:groupId',
+    title: 'Group Detail | Red Hat Hybrid Cloud Console',
+  },
+  {
     element: <Roles />,
     exact: true,
     path: '/roles',
     title: 'Roles | Red Hat Hybrid Cloud Console',
+  },
+  {
+    element: <RoleDetail />,
+    exact: true,
+    path: '/roles/:roleId',
+    title: 'Role Detail | Red Hat Hybrid Cloud Console',
   },
   {
     element: <AlertOverriderRole />,
@@ -179,6 +215,12 @@ const routes: AppRouteConfig[] = [
     exact: true,
     path: '/workspaces',
     title: 'Workspaces | Red Hat Hybrid Cloud Console',
+  },
+  {
+    element: <WorkspaceDetail />,
+    exact: true,
+    path: '/workspaces/:workspaceId',
+    title: 'Workspace Detail | Red Hat Hybrid Cloud Console',
   },
   {
     element: <RedHatAccessRequests />,
