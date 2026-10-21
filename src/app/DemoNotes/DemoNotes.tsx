@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useFeedbackMode } from '@app/FeedbackOverlay/FeedbackOverlay';
 import './DemoNotes.css';
 
 interface Prompt {
@@ -59,6 +60,21 @@ const demoAreas: Area[] = [
         ],
       },
       {
+        id: 'extra-metadata',
+        title: 'Extra metadata in results',
+        description:
+          'Add extra metadata to the results: e.g. prod-cluster-01 OpenShift · Production · 3 Critical vulnerabilities',
+        prompts: [
+          { label: 'prod-cluster-01', type: 'nav' },
+          { label: 'cluster:', type: 'nav' },
+          { label: 'app-server-04', type: 'nav' },
+          { label: 'rhel-prod-host-group', type: 'nav' },
+          { label: 'Show me prod-cluster-01 details', type: 'ai' },
+          { label: 'Which clusters have critical vulnerabilities?', type: 'ai' },
+          { label: 'What is the status of app-server-04?', type: 'ai' },
+        ],
+      },
+      {
         id: 'workspace-grant-access',
         title: 'Find a workspace and grant access',
         description:
@@ -75,15 +91,52 @@ const demoAreas: Area[] = [
       },
     ],
   },
+  {
+    id: 'lightspeed',
+    name: 'Red Hat Lightspeed',
+    useCases: [
+      {
+        id: 'find-system-by-name',
+        title: 'Find system by name',
+        description:
+          'Type a partial RHEL system name; jump directly to its details page.',
+        prompts: [
+          { label: 'app-server', type: 'nav' },
+          { label: 'app-server-04', type: 'nav' },
+          { label: 'prod-cluster-01', type: 'nav' },
+          { label: 'host:', type: 'nav' },
+          { label: 'host: app-server', type: 'nav' },
+          { label: 'Find the system app-server-04', type: 'ai' },
+          { label: 'Show me details for prod-cluster-01', type: 'ai' },
+        ],
+      },
+      {
+        id: 'find-system-by-severity',
+        title: 'Find system by severity',
+        description:
+          'Ask about systems with high severity levels to find critical issues.',
+        prompts: [
+          { label: 'critical vulnerabilities', type: 'nav' },
+          { label: 'high severity', type: 'nav' },
+          { label: 'Where can I find systems that have high severity levels?', type: 'ai' },
+          { label: 'Which systems have critical CVEs?', type: 'ai' },
+          { label: 'Show me all RHEL hosts with unresolved vulnerabilities', type: 'ai' },
+        ],
+      },
+    ],
+  },
 ];
 
 interface DemoNotesProps {
   onPromptClick?: (prompt: string) => void;
+  forceCollapsed?: boolean;
 }
 
 const DemoNotes: React.FunctionComponent<DemoNotesProps> = ({
   onPromptClick,
+  forceCollapsed = false,
 }) => {
+  const commentMode = useFeedbackMode();
   const [isOpen, setIsOpen] = React.useState(true);
   const [expandedAreas, setExpandedAreas] = React.useState<Set<string>>(
     () => new Set(demoAreas.map((a) => a.id)),
@@ -118,7 +171,7 @@ const DemoNotes: React.FunctionComponent<DemoNotesProps> = ({
 
   return (
     <aside
-      className={`demo-notes${isOpen ? '' : ' demo-notes--collapsed'}`}
+      className={`demo-notes${isOpen && !forceCollapsed && !commentMode ? '' : ' demo-notes--collapsed'}`}
       aria-label="Demo notes and test prompts"
     >
       <button

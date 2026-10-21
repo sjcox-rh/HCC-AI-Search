@@ -11,6 +11,7 @@ import { SearchPalette } from '@app/SearchPalette/SearchPalette';
 import { getShortcutLabel } from '@app/SearchPalette/searchPaletteData';
 import '@app/SearchPalette/SearchPalette.css';
 import { DemoNotes } from '@app/DemoNotes/DemoNotes';
+import { FeedbackOverlay } from '@app/FeedbackOverlay/FeedbackOverlay';
 import {
   Avatar,
   Badge,
@@ -1561,7 +1562,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   const currentBundle = getCurrentBundle();
   
   // Check if we're on a page without navigation (homepage or all services)
-  const isPageWithoutNav = location.pathname === '/' || location.pathname === '/all-services' || location.pathname.startsWith('/search');
+  const isPageWithoutNav = location.pathname === '/' || location.pathname === '/all-services' || location.pathname.startsWith('/search') || location.pathname.startsWith('/vulnerability');
 
   React.useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -5006,7 +5007,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   );
 
   return (
-    <>
+    <FeedbackOverlay searchQuery={aiSearchQuery} searchOpen={isSearchPaletteOpen}>
       <Page
         mainContainerId={pageId}
         masthead={masthead}
@@ -5051,7 +5052,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
           setIsSearchPaletteOpen(true);
         }}
       />
-      
+
       {/* Full-width Services Drawer under Masthead */}
       {isLogoDropdownOpen && (
         <div
@@ -6633,7 +6634,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
         />
       ))}
 
-    </>
+    </FeedbackOverlay>
   );
 };
 

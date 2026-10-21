@@ -33,7 +33,11 @@ import { AppearanceSettings } from '@app/Settings/Appearance/AppearanceSettings'
 import { GeneralSettings } from '@app/Settings/General/GeneralSettings';
 import { OpenShiftBundlePage } from '@app/OpenShift/OpenShiftBundlePage';
 import { OPENSHIFT_BUNDLE_PAGES } from '@app/OpenShift/openshiftBundleNavigation';
+import { VulnerabilitySystems } from '@app/Vulnerability/VulnerabilitySystems';
+import { VulnerabilityCVEs } from '@app/Vulnerability/VulnerabilityCVEs';
+import { SystemDetail } from '@app/Vulnerability/SystemDetail';
 import { NotFound } from '@app/NotFound/NotFound';
+/* Vulnerability routes added */
 
 export interface IAppRoute {
   label?: string; // Excluding the label will exclude the route from the nav sidebar in AppLayout
@@ -261,6 +265,23 @@ const routes: AppRouteConfig[] = [
     exact: true,
     path: '/search',
     title: 'Search Results | Red Hat Hybrid Cloud Console',
+  },
+  {
+    element: <VulnerabilitySystems />,
+    exact: true,
+    path: '/vulnerability/systems',
+    title: 'Systems | Vulnerability | Red Hat Hybrid Cloud Console',
+  },
+  {
+    element: <SystemDetail />,
+    path: '/vulnerability/systems/:systemId',
+    title: 'System Detail | Vulnerability | Red Hat Hybrid Cloud Console',
+  },
+  {
+    element: <VulnerabilityCVEs />,
+    exact: true,
+    path: '/vulnerability/cves',
+    title: 'CVEs | Vulnerability | Red Hat Hybrid Cloud Console',
   },
   ...OPENSHIFT_BUNDLE_PAGES.map((page) => ({
     element: (

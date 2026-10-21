@@ -151,7 +151,7 @@ const MAX_HISTORY = 10;
 
 const SEED_RECENT_POOL: PaletteAction[] = [
   { id: 'seed-cluster', title: 'cluster-prod-openshift-01', meta: 'OpenShift 4.16 · Healthy', status: 'success', kind: 'cluster', nav: { route: '/overview', filters: ['Cluster: cluster-prod-openshift-01'] } },
-  { id: 'seed-host', title: 'app-server-04', meta: 'RHEL 9.3 · 2 Critical Vulnerabilities', status: 'danger', kind: 'host', nav: { route: '/overview', filters: ['Host: app-server-04', 'Critical CVE'] } },
+  { id: 'seed-host', title: 'prod-cluster-01', meta: 'RHEL 9.4 · 2 Critical · 2,854 Advisories', status: 'danger', kind: 'host', nav: { route: '/vulnerability/systems/prod-cluster-01' } },
   { id: 'seed-group', title: 'rhel-prod-host-group', meta: 'RHEL · 48 systems', kind: 'group', nav: { route: '/overview', filters: ['Group: rhel-prod-host-group'] } },
   { id: 'seed-workspace', title: 'production', meta: 'Workspace · 12 members', kind: 'workspace', nav: { route: '/workspaces/production' } },
   { id: 'seed-role', title: 'Organization Administrator', meta: 'Role · 22 permissions', kind: 'role', nav: { route: '/roles/org-admin' } },
@@ -396,12 +396,21 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
       ? entityKinds.reduce<Record<string, number>>((acc, { kind }) => { acc[kind] = (acc[kind] || 0) + 1; return acc; }, {})
       : {};
     const topEntityKind = Object.entries(dominantKind).sort((a, b) => b[1] - a[1])[0]?.[0] as ResultKind | undefined;
-    const isEntityFocused = topEntityKind && (
+
+    const normalizeMatch = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    const queryNorm = normalizeMatch(queryLower);
+    const firstEntityMatchesQuery = resolution.entities.length > 0 &&
+      normalizeMatch(resolution.entities[0].title).includes(queryNorm);
+    const isEntityFocused = !resolution.answer && (firstEntityMatchesQuery || (topEntityKind && (
       queryLower.includes(topEntityKind) ||
       (dominantKind[topEntityKind] || 0) >= 3
-    );
+    )));
 
-    if (isEntityFocused) {
+    if (resolution.answer) {
+      resolution.actions.forEach((item) => addIfNew(item, kindForItem(item)));
+      resolution.entities.forEach((item) => addIfNew(item, entityKind(item)));
+      resolution.docs.forEach((item) => addIfNew(item, (item.kind || 'documentation') as ResultKind));
+    } else if (isEntityFocused) {
       entityKinds
         .filter(({ kind }) => kind === topEntityKind)
         .forEach(({ item, kind }) => addIfNew(item, kind));
@@ -597,6 +606,10 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
     const onPointerDown = (event: MouseEvent) => {
       const target = event.target as Node;
       if (anchorRef.current?.contains(target) || panelRef.current?.contains(target)) {
+        return;
+      }
+      const el = target instanceof Element ? target : (target as Node).parentElement;
+      if (el?.closest('.feedback-overlay.is-active, .feedback-pin-form, .feedback-pin-marker, .feedback-topbar, .feedback-sidebar')) {
         return;
       }
       closeAndReset();

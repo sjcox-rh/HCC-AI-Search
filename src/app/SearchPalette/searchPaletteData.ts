@@ -425,7 +425,7 @@ export const getContextualSuggestions = (pathname: string): PaletteAction[] => {
         id: 'ctx-cves',
         title: 'Show me critical CVEs across production hosts',
         description: 'Natural language → Insights Vulnerability with filters',
-        nav: { route: '/overview', filters: ['RHEL', 'Critical CVE', 'Production'], query: 'critical CVEs in production' },
+        nav: { route: '/vulnerability/cves', filters: ['Critical CVE', 'Production'], query: 'critical CVEs in production' },
       },
       {
         id: 'ctx-patch',
@@ -472,6 +472,14 @@ export const getContextualSuggestions = (pathname: string): PaletteAction[] => {
 
 export const recentEntities: PaletteAction[] = [
   {
+    id: 'recent-prod-cluster',
+    title: 'prod-cluster-01',
+    meta: 'RHEL 9.4 · 2 Critical · 2,854 Advisories',
+    status: 'danger',
+    kind: 'host',
+    nav: { route: '/vulnerability/systems/prod-cluster-01' },
+  },
+  {
     id: 'recent-cluster',
     title: 'cluster-prod-openshift-01',
     meta: 'OpenShift 4.16 · Healthy',
@@ -482,10 +490,10 @@ export const recentEntities: PaletteAction[] = [
   {
     id: 'recent-host',
     title: 'app-server-04',
-    meta: 'RHEL 9.3 · 2 Critical Vulnerabilities',
+    meta: 'RHEL 9.3 · 1 Critical · 627 Advisories',
     status: 'danger',
     kind: 'host',
-    nav: { route: '/overview', filters: ['Host: app-server-04', 'Critical CVE'] },
+    nav: { route: '/vulnerability/systems/app-server-04' },
   },
   {
     id: 'recent-group',
@@ -957,7 +965,7 @@ const cveAnswer: AiAnswer = {
       label: 'View Vulnerable Hosts',
       variant: 'primary',
       nav: {
-        route: '/overview',
+        route: '/vulnerability/systems',
         filters: ['RHEL 8', 'Critical CVE', 'Production'],
         query: 'RHEL 8 servers with critical CVEs in production',
       },
@@ -1384,14 +1392,26 @@ const inventoryRecords: InventoryRecord[] = [
   },
   {
     serviceIds: ['rhel', 'insights', 'hcc'],
+    tags: ['rhel', 'host', 'server', 'cluster', 'cve', 'production', 'critical', 'severity', 'vulnerability'],
+    item: {
+      id: 'inv-host-prod-cluster',
+      title: 'prod-cluster-01',
+      meta: 'RHEL 9.4 · 2 Critical · 2,854 Advisories',
+      status: 'danger',
+      kind: 'host',
+      nav: { route: '/vulnerability/systems/prod-cluster-01' },
+    },
+  },
+  {
+    serviceIds: ['rhel', 'insights', 'hcc'],
     tags: ['rhel', 'host', 'server', 'cve', 'production', 'insights'],
     item: {
       id: 'inv-host-app',
       title: 'app-server-04',
-      meta: 'RHEL 9.3 · 2 Critical Vulnerabilities',
+      meta: 'RHEL 9.3 · 1 Critical · 627 Advisories',
       status: 'danger',
       kind: 'host',
-      nav: { route: '/overview', filters: ['Host: app-server-04', 'Critical CVE'] },
+      nav: { route: '/vulnerability/systems/app-server-04' },
     },
   },
   {
@@ -1403,7 +1423,7 @@ const inventoryRecords: InventoryRecord[] = [
       meta: 'RHEL 8.10 · Production · Insights connected',
       status: 'success',
       kind: 'host',
-      nav: { route: '/overview', filters: ['Host: web-server-01', 'RHEL 8'] },
+      nav: { route: '/vulnerability/systems/web-server-01' },
     },
   },
   {
@@ -1414,7 +1434,7 @@ const inventoryRecords: InventoryRecord[] = [
       title: 'db-server-07',
       meta: 'RHEL 9.4 · Storage 71%',
       kind: 'host',
-      nav: { route: '/overview', filters: ['Host: db-server-07'] },
+      nav: { route: '/vulnerability/systems/db-server-07' },
     },
   },
   {
@@ -1732,10 +1752,23 @@ const findRelevantInventory = (
   query: string,
   service?: SearchableService,
 ): { playbooks: PaletteAction[]; entities: PaletteAction[] } => {
+  const q = normalize(query);
   const matched = inventoryRecords.filter((record) => recordMatches(record, query, service)).map((record) => record.item);
+
+  const titleScore = (item: PaletteAction): number => {
+    const t = normalize(item.title);
+    if (t === q) return 3;
+    if (t.includes(q)) return 2;
+    const tokens = q.split(' ').filter(Boolean);
+    if (tokens.every((tok) => t.includes(tok))) return 1;
+    return 0;
+  };
+
+  const sorted = [...matched].sort((a, b) => titleScore(b) - titleScore(a));
+
   return {
-    playbooks: matched.filter((item) => item.kind === 'playbook' || item.playbook),
-    entities: matched.filter((item) => item.kind !== 'playbook' && !item.playbook),
+    playbooks: sorted.filter((item) => item.kind === 'playbook' || item.playbook),
+    entities: sorted.filter((item) => item.kind !== 'playbook' && !item.playbook),
   };
 };
 
@@ -1868,6 +1901,11 @@ export const resolveQuery = (query: string): SearchResolution => {
           return false;
         }
       }
+      if (parsed.prefix!.key === 'group') {
+        const isIamGroup = item.nav?.route?.startsWith('/groups') ||
+          (item.meta && item.meta.toLowerCase().includes('iam'));
+        if (!isIamGroup) return false;
+      }
       if (!searchTerm) return true;
       const hay = normalize([item.title, item.meta, item.description].filter(Boolean).join(' '));
       return hay.includes(normalize(searchTerm));
@@ -1893,7 +1931,9 @@ export const resolveQuery = (query: string): SearchResolution => {
   const isCve =
     q.includes('cve') ||
     q.includes('vulnerab') ||
-    (q.includes('critical') && (q.includes('rhel') || q.includes('host') || q.includes('server'))) ||
+    q.includes('critical') ||
+    q.includes('high severity') ||
+    q.includes('severity') ||
     q.includes('fix');
 
   const isStorage = q.includes('storage') || q.includes('running out') || q.includes('capacity');
@@ -1914,8 +1954,16 @@ export const resolveQuery = (query: string): SearchResolution => {
     (q.includes('help') && (q.includes('report') || q.includes('issue') || q.includes('found')));
 
   const isWorkspaceAccess =
-    (q.includes('workspace') && (q.includes('grant') || q.includes('access') || q.includes('find'))) ||
+    (q.includes('workspace') && (q.includes('grant') || q.includes('access') || q.includes('find') || q.includes('add') || q.includes('how'))) ||
     (q.includes('grant access') && q.includes('workspace'));
+
+  const isGroup =
+    q.includes('group') ||
+    (q.includes('team') && (q.includes('find') || q.includes('manage') || q.includes('show') || q.includes('which')));
+
+  const isSystemLookup =
+    (q.includes('details') || q.includes('status') || q.includes('show me') || q.includes('find')) &&
+    (q.includes('system') || q.includes('server') || q.includes('host') || q.includes('prod') || q.includes('app-server') || q.includes('cluster'));
 
   let intent: SearchResolution = { actions: [], entities: [], docs: [] };
 
@@ -2042,15 +2090,22 @@ export const resolveQuery = (query: string): SearchResolution => {
     intent = {
       answer: cveAnswer,
       actions: [
-        withRestrictedAccess(
-          {
-            id: 'act-terminal',
-            title: "Launch Web Console terminal for 'prod-us-east-1'",
-            description: 'Inline action · cluster-admin required',
-            kind: 'action',
-          },
-          'Cluster administrators',
-        ),
+        {
+          id: 'act-cves-page',
+          title: 'CVEs',
+          description: 'View all CVEs with severity filters',
+          kind: 'page',
+          meta: 'Security · Vulnerability',
+          nav: { route: '/vulnerability/cves' },
+        },
+        {
+          id: 'act-systems-page',
+          title: 'Vulnerable Systems',
+          description: 'View systems with applicable vulnerabilities',
+          kind: 'page',
+          meta: 'Security · Vulnerability',
+          nav: { route: '/vulnerability/systems' },
+        },
         {
           id: 'act-playbook',
           title: 'Trigger Ansible Playbook: Patch RHEL 9 Glitch',
@@ -2061,20 +2116,20 @@ export const resolveQuery = (query: string): SearchResolution => {
       ],
       entities: [
         {
-          id: 'ent-cluster',
-          title: 'cluster-prod-openshift-01',
-          meta: 'OpenShift 4.16 · Healthy',
-          status: 'success',
-          kind: 'cluster',
-          nav: { route: '/overview', filters: ['Cluster: cluster-prod-openshift-01'] },
+          id: 'ent-prod-cluster',
+          title: 'prod-cluster-01',
+          meta: 'RHEL 9.4 · 2 Critical · 2,854 Advisories',
+          status: 'danger',
+          kind: 'host',
+          nav: { route: '/vulnerability/systems/prod-cluster-01' },
         },
         {
           id: 'ent-host',
           title: 'app-server-04',
-          meta: 'RHEL 9.3 · 2 Critical Vulnerabilities',
+          meta: 'RHEL 9.3 · 1 Critical · 627 Advisories',
           status: 'danger',
           kind: 'host',
-          nav: { route: '/overview', filters: ['Host: app-server-04', 'Critical CVE'] },
+          nav: { route: '/vulnerability/systems/app-server-04' },
         },
         withRestrictedAccess(
           {
@@ -2211,6 +2266,58 @@ export const resolveQuery = (query: string): SearchResolution => {
     };
   }
 
+  if (!intent.answer && isGroup) {
+    const groupName = q.includes('platform') ? 'platform-admins' :
+      q.includes('cloud') || q.includes('operations') ? 'cloud-operators' :
+      q.includes('security') ? 'security-reviewers' : 'platform-admins';
+    const groupDescription = q.includes('platform') ? 'Manages platform infrastructure across all environments' :
+      q.includes('cloud') || q.includes('operations') ? 'Manages cloud infrastructure and operations' :
+      q.includes('security') ? 'Reviews and approves security policies and configurations' : 'User group in Identity & Access Management';
+    intent = {
+      answer: {
+        summary: `The "${groupName}" group is managed in Identity & Access Management. This group ${groupDescription.toLowerCase()}. You can view its members, assigned roles, and workspaces from the group detail page.`,
+        actions: [
+          { id: 'open-group', label: `Open ${groupName}`, variant: 'primary', nav: { route: `/groups/${groupName}` } },
+          { id: 'open-groups', label: 'View all groups', variant: 'secondary', nav: { route: '/groups' } },
+        ],
+      },
+      actions: [
+        { id: 'act-group', title: groupName, description: groupDescription, kind: 'page', meta: 'IAM · User Group', nav: { route: `/groups/${groupName}` } },
+        { id: 'act-groups', title: 'Groups', description: 'View and manage all user groups', kind: 'page', meta: 'Identity & Access Management', nav: { route: '/groups' } },
+      ],
+      entities: [],
+      docs: [
+        { id: 'doc-groups', title: 'Managing user groups in IAM', meta: 'Documentation', kind: 'documentation', nav: { route: '/learning-resources' } },
+      ],
+    };
+  }
+
+  if (!intent.answer && isSystemLookup) {
+    const systemName = q.includes('prod') && q.includes('cluster') ? 'prod-cluster-01' :
+      q.includes('app-server') || q.includes('app server') ? 'app-server-04' :
+      q.includes('web') ? 'web-server-01' :
+      q.includes('db') ? 'db-server-07' : 'prod-cluster-01';
+    const systemMeta = systemName === 'prod-cluster-01' ? 'RHEL 9.4 · 2 Critical · 2,854 Advisories' :
+      systemName === 'app-server-04' ? 'RHEL 9.3 · 1 Critical · 627 Advisories' :
+      systemName === 'web-server-01' ? 'RHEL 8.9 · 442 Advisories' :
+      systemName === 'db-server-07' ? 'RHEL 9.4 · 312 Advisories' : 'RHEL · Advisories';
+    intent = {
+      answer: {
+        summary: `Here are the details for ${systemName}. This system is registered with Red Hat Insights and has applicable advisories. You can view its CVEs, remediation options, and compliance status from the system detail page.`,
+        actions: [
+          { id: 'open-system', label: `Open ${systemName}`, variant: 'primary', nav: { route: `/vulnerability/systems/${systemName}` } },
+          { id: 'open-systems', label: 'View all systems', variant: 'secondary', nav: { route: '/vulnerability/systems' } },
+        ],
+      },
+      actions: [
+        { id: 'act-system', title: systemName, description: `View system details, CVEs, and remediation`, kind: 'page', meta: systemMeta, status: 'danger', nav: { route: `/vulnerability/systems/${systemName}` } },
+        { id: 'act-systems', title: 'Vulnerable Systems', description: 'View all systems with vulnerabilities', kind: 'page', meta: 'Security · Vulnerability', nav: { route: '/vulnerability/systems' } },
+      ],
+      entities: [],
+      docs: [],
+    };
+  }
+
   const serviceActions: PaletteAction[] = [];
   if (service) {
     serviceActions.push(service.landing, ...service.related);
@@ -2221,9 +2328,15 @@ export const resolveQuery = (query: string): SearchResolution => {
     }
   });
 
-  const actions = grantedFirst(dedupeById([...serviceActions, ...inventory.playbooks, ...intent.actions]));
-  const entities = grantedFirst(dedupeById([...inventory.entities, ...intent.entities]));
-  const docs = dedupeById([...gettingStarted, ...extraDocs, ...intent.docs]);
+  const actions = intent.answer
+    ? grantedFirst(dedupeById(intent.actions))
+    : grantedFirst(dedupeById([...serviceActions, ...inventory.playbooks, ...intent.actions]));
+  const entities = intent.answer
+    ? grantedFirst(dedupeById(intent.entities))
+    : grantedFirst(dedupeById([...inventory.entities, ...intent.entities]));
+  const docs = intent.answer
+    ? dedupeById(intent.docs)
+    : dedupeById([...gettingStarted, ...extraDocs, ...intent.docs]);
 
   if (!intent.answer && actions.length === 0 && entities.length === 0 && docs.length === 0) {
     return { actions: [], entities: [], docs: [] };

@@ -22,11 +22,7 @@ export default merge(common('development'), {
       directory: path.resolve('./dist'),
     },
     client: {
-      overlay: {
-        errors: true,
-        warnings: false,
-        runtimeErrors: false,
-      },
+      overlay: false,
     },
   },
   module: {
