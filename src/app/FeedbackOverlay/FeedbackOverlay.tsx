@@ -242,7 +242,7 @@ const FeedbackOverlay: React.FC<FeedbackOverlayProps> = ({ searchQuery = '', sea
       setPins((prev) => [...prev, pin]);
       setPendingPin(null);
 
-      if (WEBHOOK_URL !== 'YOUR_WEBHOOK_URL_HERE') {
+      if (WEBHOOK_URL) {
         try {
           const params = new URLSearchParams({
             timestamp: pin.timestamp, author: pin.author, component: pin.component,
