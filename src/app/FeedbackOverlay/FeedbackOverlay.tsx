@@ -304,6 +304,11 @@ const FeedbackOverlay: React.FC<FeedbackOverlayProps> = ({ searchQuery = '', sea
       {/* ─── Top bar (inline, pushes content down) ─── */}
       <div className={`feedback-topbar ${active ? 'feedback-topbar--active' : ''}`}>
         <div className="feedback-topbar__inner">
+          <div className="feedback-topbar__versions">
+            <a href="https://sjcox-rh.github.io/HCC-AI-Search/v1/" className="feedback-topbar__version-link feedback-topbar__version-link--inactive">V1</a>
+            <span className="feedback-topbar__version-sep">|</span>
+            <span className="feedback-topbar__version-link feedback-topbar__version-link--active">V2</span>
+          </div>
           <span className="feedback-topbar__label">💬 Comment Mode</span>
           <label className="feedback-topbar__toggle">
             <input type="checkbox" checked={active} onChange={() => { setActive((v) => { if (!v) setSidebarCollapsed(false); return !v; }); setPendingPin(null); }} />
