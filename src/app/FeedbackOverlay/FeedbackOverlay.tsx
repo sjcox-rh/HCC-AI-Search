@@ -307,7 +307,7 @@ const FeedbackOverlay: React.FC<FeedbackOverlayProps> = ({ searchQuery = '', sea
           <div className="feedback-topbar__versions">
             <a href="https://sjcox-rh.github.io/HCC-AI-Search/v1/" className="feedback-topbar__version-link feedback-topbar__version-link--inactive">V1</a>
             <span className="feedback-topbar__version-sep">|</span>
-            <span className="feedback-topbar__version-link feedback-topbar__version-link--active">V2</span>
+            <a href="https://sjcox-rh.github.io/HCC-AI-Search/" className="feedback-topbar__version-link feedback-topbar__version-link--active">V2</a>
           </div>
           <div className="feedback-topbar__center">
             <span className="feedback-topbar__label">💬 Comment Mode</span>
