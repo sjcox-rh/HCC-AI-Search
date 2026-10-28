@@ -13,7 +13,7 @@ const App: React.FunctionComponent = () => {
   useDocumentTitle('AI Search Prototype');
 
   return (
-    <Router basename={process.env.ROUTER_BASENAME || ''}>
+    <Router basename={__ROUTER_BASENAME__}>
       <DashboardDataProvider>
         <PinnedDashboardsProvider>
           <FavoritedServicesProvider>

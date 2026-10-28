@@ -1,3 +1,4 @@
+declare const __ROUTER_BASENAME__: string;
 declare module '*.png';
 declare module '*.jpg';
 declare module '*.jpeg';
