@@ -4223,7 +4223,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
                 placeholder={
                   isSearchPaletteOpen
                     ? 'Ask AI, jump to resources, run playbooks, search docs...'
-                    : 'Search, ask AI, or go to...'
+                    : 'Search or Ask AI'
                 }
                 aria-label="Search, ask AI, or go to"
                 aria-expanded={isSearchPaletteOpen}
