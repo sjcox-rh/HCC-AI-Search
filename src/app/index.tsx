@@ -13,7 +13,7 @@ const App: React.FunctionComponent = () => {
   useDocumentTitle('AI Search Prototype');
 
   return (
-    <Router basename={process.env.NODE_ENV === 'production' ? '/HCC-AI-Search' : ''}>
+    <Router basename={process.env.ROUTER_BASENAME || ''}>
       <DashboardDataProvider>
         <PinnedDashboardsProvider>
           <FavoritedServicesProvider>
