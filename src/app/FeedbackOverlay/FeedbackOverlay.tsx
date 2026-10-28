@@ -309,11 +309,13 @@ const FeedbackOverlay: React.FC<FeedbackOverlayProps> = ({ searchQuery = '', sea
             <span className="feedback-topbar__version-sep">|</span>
             <span className="feedback-topbar__version-link feedback-topbar__version-link--active">V2</span>
           </div>
-          <span className="feedback-topbar__label">💬 Comment Mode</span>
-          <label className="feedback-topbar__toggle">
-            <input type="checkbox" checked={active} onChange={() => { setActive((v) => { if (!v) setSidebarCollapsed(false); return !v; }); setPendingPin(null); }} />
-            <span className="feedback-topbar__slider" />
-          </label>
+          <div className="feedback-topbar__center">
+            <span className="feedback-topbar__label">💬 Comment Mode</span>
+            <label className="feedback-topbar__toggle">
+              <input type="checkbox" checked={active} onChange={() => { setActive((v) => { if (!v) setSidebarCollapsed(false); return !v; }); setPendingPin(null); }} />
+              <span className="feedback-topbar__slider" />
+            </label>
+          </div>
         </div>
       </div>
       <FeedbackModeContext.Provider value={active}>
