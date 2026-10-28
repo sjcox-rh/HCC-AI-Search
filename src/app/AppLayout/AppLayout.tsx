@@ -92,6 +92,7 @@ import {
 } from '@patternfly/react-core';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import {
+  ArrowRightIcon,
   BarsIcon, 
   BellIcon, 
   BookmarkIcon,
@@ -4238,6 +4239,20 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
               />
               {!isSearchPaletteOpen && (
                 <span className="ai-search-masthead__shortcut">{getShortcutLabel()}</span>
+              )}
+              {isSearchPaletteOpen && (
+                <button
+                  type="button"
+                  className="ai-search-masthead__enter-btn"
+                  aria-label="Search"
+                  disabled={!aiSearchQuery.trim()}
+                  onClick={() => {
+                    setIsSearchPaletteOpen(false);
+                    navigate('/search?q=' + encodeURIComponent(aiSearchQuery.trim()));
+                  }}
+                >
+                  <ArrowRightIcon />
+                </button>
               )}
             </div>
           </FlexItem>

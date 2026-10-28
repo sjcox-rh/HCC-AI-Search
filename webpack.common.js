@@ -9,7 +9,8 @@ import Dotenv from 'dotenv-webpack';
 const BG_IMAGES_DIRNAME = 'bgimages';
 const ASSET_PATH = process.env.ASSET_PATH || '/HCC-AI-Search/';
 
-export default (env) => {
+export default (env, argv) => {
+  const isProd = argv && argv.mode === 'production';
   return {
     module: {
       rules: [
@@ -112,7 +113,7 @@ export default (env) => {
         silent: true,
       }),
       new webpack.DefinePlugin({
-        'process.env.ROUTER_BASENAME': JSON.stringify(ASSET_PATH.replace(/\/$/, '')),
+        'process.env.ROUTER_BASENAME': JSON.stringify(isProd ? ASSET_PATH.replace(/\/$/, '') : ''),
       }),
       new CopyPlugin({
         patterns: [

@@ -12,6 +12,9 @@ import {
   FlexItem,
   Icon,
   Label,
+  Tab,
+  Tabs,
+  TabTitleText,
   Title,
   Tooltip,
   Split,
@@ -33,6 +36,7 @@ import {
   SearchIcon,
   ServerIcon,
   ShieldAltIcon,
+  OutlinedClockIcon,
   TerminalIcon,
 } from '@patternfly/react-icons';
 import SparkleIcon from '@app/bgimages/sparkle-icon.svg';
@@ -238,6 +242,7 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
   const [selectedServiceId, setSelectedServiceId] = React.useState(DEFAULT_SERVICE_ID);
   const [favoritedItems, setFavoritedItems] = React.useState<Set<string>>(new Set());
   const [collapsedGroups, setCollapsedGroups] = React.useState<Set<ResultGroupKey>>(new Set());
+  const [activeResultTab, setActiveResultTab] = React.useState<'top' | ResultGroupKey>('top');
   const recentEntities = useSessionHistory();
   const selectedService = getSelectedService(selectedServiceId);
   const showSearchShortcuts = selectedServiceId === DEFAULT_SERVICE_ID && favoritedItems.size === 0;
@@ -455,26 +460,22 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
       return items;
     }
 
-    topResults.forEach(({ item }) => items.push({ id: `top-${item.id}`, type: 'row', run: () => runAction(item) }));
-
-    resultGroups.forEach((group) => {
-      items.push({
-        id: `group-header-${group.key}`,
-        type: 'group-header',
-        groupKey: group.key,
-        run: () => toggleGroup(group.key),
-      });
-      if (!collapsedGroups.has(group.key)) {
-        group.rows.forEach(({ item }) => items.push({ id: item.id, type: 'row', run: () => runAction(item) }));
+    if (activeResultTab === 'top') {
+      topResults.forEach(({ item }) => items.push({ id: `top-${item.id}`, type: 'row', run: () => runAction(item) }));
+    } else {
+      const activeGroup = resultGroups.find((g) => g.key === activeResultTab);
+      if (activeGroup) {
+        activeGroup.rows.forEach(({ item }) => items.push({ id: item.id, type: 'row', run: () => runAction(item) }));
       }
-    });
+    }
 
     return items;
-  }, [hasQuery, resolution, runAction, runPlaybook, goTo, suggestions, showSearchShortcuts, resultGroups, collapsedGroups, toggleGroup, topResults]);
+  }, [hasQuery, resolution, runAction, runPlaybook, goTo, suggestions, showSearchShortcuts, resultGroups, collapsedGroups, toggleGroup, topResults, activeResultTab]);
 
   React.useEffect(() => {
     setSelectedIndex(0);
     setCollapsedGroups(new Set());
+    setActiveResultTab('top');
   }, [query, isOpen, selectedServiceId]);
 
   React.useEffect(() => {
@@ -712,36 +713,22 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
         role="dialog"
         aria-label="Search results"
       >
-        {hasQuery && resultGroups.length > 0 && (
-          <div className="ai-search-palette__results-summary">
-            <span className="ai-search-palette__results-summary-label">Results</span>
-            {resultGroups.map((group) => (
-              <Button
-                key={group.key}
-                variant="plain"
-                isInline
-                size="sm"
-                className="ai-search-palette__results-summary-chip"
-                onClick={() => {
-                  if (collapsedGroups.has(group.key)) {
-                    toggleGroup(group.key);
-                  }
-                  requestAnimationFrame(() => {
-                    const el = document.getElementById(`ai-search-item-group-header-${group.key}`);
-                    const scrollParent = el?.closest('.ai-search-palette__body');
-                    if (el && scrollParent) {
-                      const parentRect = scrollParent.getBoundingClientRect();
-                      const elRect = el.getBoundingClientRect();
-                      const offset = elRect.top - parentRect.top + scrollParent.scrollTop;
-                      scrollParent.scrollTo({ top: offset, behavior: 'smooth' });
-                    }
-                  });
-                }}
-              >
-                {group.label}
-                <Label isCompact>{group.rows.length}</Label>
-              </Button>
-            ))}
+        {hasQuery && (topResults.length > 0 || resultGroups.length > 0) && (
+          <div className="ai-search-palette__results-tabs">
+            <Tabs
+              activeKey={activeResultTab}
+              onSelect={(_event, tabKey) => { setActiveResultTab(tabKey as 'top' | ResultGroupKey); setSelectedIndex(0); }}
+              aria-label="Search result categories"
+              isSubtab
+              hasNoBorderBottom
+            >
+              {topResults.length > 0 && (
+                <Tab eventKey="top" title={<TabTitleText>Top results <Label isCompact>{topResults.length}</Label></TabTitleText>} />
+              )}
+              {resultGroups.map((group) => (
+                <Tab key={group.key} eventKey={group.key} title={<TabTitleText>{group.label} <Label isCompact>{group.rows.length}</Label></TabTitleText>} />
+              ))}
+            </Tabs>
           </div>
         )}
         <CardBody className="ai-search-palette__body">
@@ -778,27 +765,31 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
                   <div role="listbox" aria-label="Search suggestions">
                     {recentEntities.length > 0 && (
                       <>
-                        {sectionTitle('Recent')}
-                        <div className="ai-search-palette__two-col">
-                          {recentEntities.map((item) => (
-                            <div key={item.id} className="ai-search-palette__two-col-item">
-                              {renderRow(item, entityKind(item))}
-                            </div>
-                          ))}
-                        </div>
+                        <Title headingLevel="h3" size="md" className="ai-search-palette__section-title">
+                          <OutlinedClockIcon style={{ marginInlineEnd: '6px', verticalAlign: '-1px' }} />Recent
+                        </Title>
+                        {recentEntities.map((item) => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            id={`ai-search-item-${item.id}`}
+                            className={`ai-search-palette__recent-item${isActive(item.id) ? ' is-active' : ''}`}
+                            role="option"
+                            aria-selected={isActive(item.id)}
+                            onMouseEnter={() => {
+                              const index = flatItems.findIndex((flat) => flat.id === item.id);
+                              if (index >= 0) setSelectedIndex(index);
+                            }}
+                            onClick={() => runAction(item)}
+                          >
+                            {item.title}
+                          </button>
+                        ))}
                       </>
                     )}
 
-                    <div className="ai-search-palette__two-col">
-                      <div className="ai-search-palette__two-col-item">
-                        {sectionTitle('Common actions')}
-                        {commonActions.map((item) => renderRow(item, kindForItem(item)))}
-                      </div>
-                      <div className="ai-search-palette__two-col-item">
-                        {sectionTitle('Suggestions')}
-                        {suggestions.map((item) => renderRow(item, 'suggestion'))}
-                      </div>
-                    </div>
+                    {sectionTitle('Suggestions')}
+                    {[...commonActions, ...suggestions].slice(0, 4).map((item) => renderRow(item, kindForItem(item)))}
 
                     {sectionTitle('Prefixed search')}
                     <div className="ai-search-palette__prefix-hints">
@@ -849,18 +840,6 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
               <div className="ai-search-palette__prefix-active">
                 <Label color="blue" isCompact>{resolution.prefix.label}</Label>
                 <span>{resolution.prefix.description}</span>
-                <Button
-                  variant="plain"
-                  isInline
-                  size="sm"
-                  onClick={() => {
-                    const parsed = parseQuery(query);
-                    onQueryChange(parsed.term || '');
-                  }}
-                  style={{ marginInlineStart: 'auto', fontSize: 'var(--pf-t--global--font--size--body--sm)' }}
-                >
-                  Clear filter
-                </Button>
               </div>
             )}
 
@@ -879,40 +858,19 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
               </Content>
             )}
 
-            {topResults.length > 0 && (
+            {activeResultTab === 'top' && topResults.length > 0 && (
               <>
-                {sectionTitle('Top results')}
                 {topResults.map(({ item, kind }) => renderRow(item, kind))}
               </>
             )}
 
-            {resultGroups.map((group) => {
-              const isCollapsed = collapsedGroups.has(group.key);
-              const headerId = `group-header-${group.key}`;
-              return (
+            {activeResultTab !== 'top' && resultGroups
+              .filter((group) => group.key === activeResultTab)
+              .map((group) => (
                 <React.Fragment key={group.key}>
-                  <button
-                    type="button"
-                    id={`ai-search-item-${headerId}`}
-                    className={`ai-search-palette__group-header${isActive(headerId) ? ' is-active' : ''}`}
-                    aria-expanded={!isCollapsed}
-                    onClick={() => toggleGroup(group.key)}
-                    onMouseEnter={() => {
-                      const index = flatItems.findIndex((flat) => flat.id === headerId);
-                      if (index >= 0) setSelectedIndex(index);
-                    }}
-                  >
-                    <Icon size="sm">
-                      {isCollapsed ? <AngleRightIcon /> : <AngleDownIcon />}
-                    </Icon>
-                    <span className="ai-search-palette__group-header-text">
-                      {group.label} ({group.rows.length})
-                    </span>
-                  </button>
-                  {!isCollapsed && group.rows.map(({ item, kind }) => renderRow(item, kind))}
+                  {group.rows.map(({ item, kind }) => renderRow(item, kind))}
                 </React.Fragment>
-              );
-            })}
+              ))}
           </div>
           )}
         </CardBody>
