@@ -1938,7 +1938,13 @@ export const resolveQuery = (query: string): SearchResolution => {
 
   const isStorage = q.includes('storage') || q.includes('running out') || q.includes('capacity');
   const isSub = q.includes('subscription') || (q.includes('usage') && (q.includes('rhel') || q.includes('subscription')));
+  const isRhel10 =
+    q.includes('rhel 10') || q.includes('rhel10') ||
+    (q.includes('rhel') && q.includes('10')) ||
+    (q.includes('red hat enterprise linux') && q.includes('10'));
+
   const isUpdate =
+    !isRhel10 &&
     (q.includes('update') || q.includes('upgrade') || q.includes('patch')) &&
     (q.includes('rhel') || q.includes('package') || q.includes('system'));
 
@@ -2259,6 +2265,108 @@ export const resolveQuery = (query: string): SearchResolution => {
           id: 'doc-dnf-guide',
           title: 'Managing software with the DNF tool',
           meta: 'Documentation',
+          kind: 'documentation',
+          nav: { route: '/learning-resources' },
+        },
+      ],
+    };
+  }
+
+  if (!intent.answer && isRhel10) {
+    intent = {
+      answer: {
+        summary:
+          'Red Hat Enterprise Linux 10 is now available. RHEL 10 introduces enhanced security with SELinux policy updates, improved container tooling with Podman 5, next-generation performance observability, and streamlined image builder workflows. Existing RHEL 8 and 9 systems can perform an in-place upgrade using the Leapp utility.',
+        actions: [
+          {
+            id: 'open-rhel10-overview',
+            label: 'Explore RHEL 10',
+            variant: 'primary',
+            nav: { route: '/overview', filters: ['RHEL 10'] },
+          },
+          {
+            id: 'open-rhel10-upgrade',
+            label: 'Plan upgrade to RHEL 10',
+            variant: 'secondary',
+          },
+        ],
+      },
+      actions: [
+        {
+          id: 'act-rhel10-release',
+          title: 'RHEL 10 release notes',
+          description: 'What\'s new in Red Hat Enterprise Linux 10',
+          kind: 'page',
+          meta: 'Product Documentation',
+          nav: { route: '/learning-resources' },
+        },
+        {
+          id: 'act-rhel10-upgrade',
+          title: 'Upgrade to RHEL 10 with Leapp',
+          description: 'In-place upgrade guide from RHEL 8 or RHEL 9',
+          kind: 'page',
+          meta: 'Documentation · Upgrade Planning',
+          nav: { route: '/learning-resources' },
+        },
+        {
+          id: 'act-rhel10-image-builder',
+          title: 'Image Builder for RHEL 10',
+          description: 'Build custom RHEL 10 images for cloud, edge, and bare metal',
+          kind: 'service',
+          meta: 'Insights · Image Builder',
+          nav: { route: '/overview', filters: ['Image Builder', 'RHEL 10'] },
+        },
+        {
+          id: 'act-rhel10-subscriptions',
+          title: 'RHEL 10 subscription usage',
+          description: 'View subscription allocation and usage for RHEL 10',
+          kind: 'page',
+          meta: 'Subscriptions · RHEL 10',
+          nav: { route: '/overview', filters: ['Subscriptions', 'RHEL 10'] },
+        },
+      ],
+      entities: [
+        {
+          id: 'ent-rhel10-activation-key',
+          title: 'RHEL 10 Activation Keys',
+          meta: 'Register systems with RHEL 10 content',
+          kind: 'action',
+          nav: { route: '/overview', filters: ['Activation Keys', 'RHEL 10'] },
+        },
+      ],
+      docs: [
+        {
+          id: 'doc-rhel10-release',
+          title: 'RHEL 10.0 Release Notes',
+          meta: 'Documentation · June 2025',
+          kind: 'documentation',
+          nav: { route: '/learning-resources' },
+        },
+        {
+          id: 'doc-rhel10-install',
+          title: 'Installing Red Hat Enterprise Linux 10',
+          meta: 'Documentation · Installation Guide',
+          kind: 'documentation',
+          nav: { route: '/learning-resources' },
+        },
+        {
+          id: 'doc-rhel10-migration',
+          title: 'Migrating to RHEL 10: Planning and considerations',
+          meta: 'Documentation · Migration Guide',
+          kind: 'documentation',
+          nav: { route: '/learning-resources' },
+        },
+        {
+          id: 'doc-rhel10-security',
+          title: 'Security hardening in RHEL 10',
+          meta: 'Documentation · Security Guide',
+          kind: 'documentation',
+          nav: { route: '/learning-resources' },
+        },
+        {
+          id: 'doc-rhel10-containers',
+          title: 'Building and running containers on RHEL 10',
+          meta: 'Documentation · Podman 5 & Container Tools',
           kind: 'documentation',
           nav: { route: '/learning-resources' },
         },
