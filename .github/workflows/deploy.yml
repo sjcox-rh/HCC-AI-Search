@@ -29,33 +29,54 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout main
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
-      
+
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
-      
-      - name: Build
+
+      # Build V2 (main)
+      - name: Build V2
         run: npm run build
         env:
-          # Set the base path for GitHub Pages
           ASSET_PATH: /HCC-AI-Search/
-      
+
+      # Checkout V1 branch and build it into dist/v1
+      - name: Checkout V1 source
+        uses: actions/checkout@v4
+        with:
+          ref: v1
+          path: v1-source
+
+      - name: Install V1 dependencies
+        run: cd v1-source && npm ci --legacy-peer-deps
+
+      - name: Build V1
+        run: |
+          cd v1-source && npm run build
+          sed -i 's|<base href="/">|<base href="/HCC-AI-Search/v1/">|' dist/index.html
+          sed -i 's|pathSegmentsToKeep = 1|pathSegmentsToKeep = 2|' dist/404.html
+        env:
+          ASSET_PATH: /HCC-AI-Search/v1/
+
+      - name: Copy V1 into V2 dist
+        run: cp -r v1-source/dist dist/v1
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
-      
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload dist directory
+          # Upload dist directory (contains both V2 at root and V1 at /v1)
           path: './dist'
-      
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
