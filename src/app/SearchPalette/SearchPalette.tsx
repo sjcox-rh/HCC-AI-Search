@@ -725,9 +725,10 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
               {topResults.length > 0 && (
                 <Tab eventKey="top" title={<TabTitleText>Top results <Label isCompact>{topResults.length}</Label></TabTitleText>} />
               )}
-              {resultGroups.map((group) => (
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+              {...resultGroups.map((group) => (
                 <Tab key={group.key} eventKey={group.key} title={<TabTitleText>{group.label} <Label isCompact>{group.rows.length}</Label></TabTitleText>} />
-              ))}
+              )) as any}
             </Tabs>
           </div>
         )}
