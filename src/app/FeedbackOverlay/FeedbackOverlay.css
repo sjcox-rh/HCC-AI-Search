@@ -8,7 +8,6 @@
   background: #fff;
   display: flex;
   align-items: center;
-  justify-content: center;
   transition: background 0.2s;
   border-bottom: 1px solid #333;
 }
@@ -18,6 +17,77 @@
 }
 
 .feedback-topbar__inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 0 12px;
+}
+
+.feedback-topbar__versions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 8px;
+  padding-right: 14px;
+  border-right: 1px solid #ccc;
+}
+
+.feedback-topbar--active .feedback-topbar__versions {
+  border-right-color: rgba(255, 255, 255, 0.3);
+}
+
+.feedback-topbar__version-link {
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.feedback-topbar__version-link--active {
+  background: #ff69b4;
+  color: #fff;
+}
+
+.feedback-topbar--active .feedback-topbar__version-link--active {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+
+.feedback-topbar__version-link--inactive {
+  color: #666;
+}
+
+.feedback-topbar--active .feedback-topbar__version-link--inactive {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.feedback-topbar__version-link--inactive:hover {
+  background: #eee;
+  color: #333;
+}
+
+.feedback-topbar--active .feedback-topbar__version-link--inactive:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+.feedback-topbar__version-sep {
+  color: #ccc;
+  font-size: 12px;
+}
+
+.feedback-topbar--active .feedback-topbar__version-sep {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.feedback-topbar__center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   align-items: center;
   gap: 10px;
