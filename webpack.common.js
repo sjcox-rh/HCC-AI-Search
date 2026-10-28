@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 
 import path from 'path';
+import webpack from 'webpack';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import CopyPlugin from 'copy-webpack-plugin';
 import TsconfigPathsPlugin from 'tsconfig-paths-webpack-plugin';
@@ -109,6 +110,9 @@ export default (env) => {
       new Dotenv({
         systemvars: true,
         silent: true,
+      }),
+      new webpack.DefinePlugin({
+        'process.env.ROUTER_BASENAME': JSON.stringify(ASSET_PATH.replace(/\/$/, '')),
       }),
       new CopyPlugin({
         patterns: [
