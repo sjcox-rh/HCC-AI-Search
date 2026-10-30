@@ -23,6 +23,7 @@ import {
 import {
   AngleDownIcon,
   AngleRightIcon,
+  DownloadIcon,
   BookOpenIcon,
   ClusterIcon,
   FolderOpenIcon,
@@ -93,23 +94,26 @@ const resultTypeLabel: Record<ResultKind, string> = {
   workspace: 'Workspace',
   role: 'Role',
   support: 'Support',
+  download: 'Download',
   suggestion: 'Suggestion',
 };
 
 type ResultGroupKey =
   | 'services'
   | 'inventories'
+  | 'downloads'
   | 'learning'
   | 'playbooks';
 
 const resultGroupLabel: Record<ResultGroupKey, string> = {
   services: 'Services & pages',
   inventories: 'Inventories',
+  downloads: 'Product downloads',
   learning: 'Learning resources',
   playbooks: 'Playbooks & actions',
 };
 
-const resultGroupOrder: ResultGroupKey[] = ['services', 'inventories', 'learning', 'playbooks'];
+const resultGroupOrder: ResultGroupKey[] = ['services', 'inventories', 'downloads', 'learning', 'playbooks'];
 
 const kindToGroup = (kind: ResultKind): ResultGroupKey => {
   switch (kind) {
@@ -126,6 +130,8 @@ const kindToGroup = (kind: ResultKind): ResultGroupKey => {
       return 'inventories';
     case 'documentation':
       return 'learning';
+    case 'download':
+      return 'downloads';
     case 'playbook':
     case 'action':
     case 'suggestion':
@@ -148,6 +154,7 @@ const resultTypeIcon: Record<ResultKind, React.ReactNode> = {
   workspace: <FolderOpenIcon />,
   role: <ShieldAltIcon />,
   support: <HeadsetIcon />,
+  download: <DownloadIcon />,
   suggestion: <SearchIcon />,
 };
 
@@ -369,6 +376,7 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
     const groups: Record<ResultGroupKey, { item: PaletteAction; kind: ResultKind }[]> = {
       services: [],
       inventories: [],
+      downloads: [],
       learning: [],
       playbooks: [],
     };

@@ -17,6 +17,7 @@ export type PaletteResultKind =
   | 'workspace'
   | 'role'
   | 'support'
+  | 'download'
   | 'suggestion';
 
 export interface PaletteAction {
@@ -58,6 +59,7 @@ export const searchPrefixes: SearchPrefix[] = [
   { key: 'cluster', label: 'cluster:', description: 'Search clusters', kinds: ['cluster'] },
   { key: 'doc', label: 'doc:', description: 'Search documentation', kinds: ['documentation'] },
   { key: 'playbook', label: 'playbook:', description: 'Search Ansible playbooks', kinds: ['playbook'] },
+  { key: 'download', label: 'download:', description: 'Search product downloads', kinds: ['download'] },
   { key: 'service', label: 'service:', description: 'Search services and pages', kinds: ['service', 'page'] },
   { key: 'system', label: 'system:', description: 'Search registered systems', kinds: ['system'] },
   { key: 'workspace', label: 'workspace:', description: 'Search workspaces', kinds: ['workspace'] },
@@ -1719,6 +1721,61 @@ const inventoryRecords: InventoryRecord[] = [
       kind: 'playbook',
     },
   },
+  {
+    serviceIds: [],
+    tags: ['rhel', 'red hat enterprise linux', 'download', 'iso', 'image', 'binary', 'dvd', 'rhel 10', 'rhel10'],
+    item: {
+      id: 'inv-dl-rhel10-dvd',
+      title: 'RHEL 10.0 Binary DVD',
+      description: 'ISO · 10.4 GB · x86_64 · Complete installation media',
+      kind: 'download',
+      nav: { route: '/downloads/rhel' },
+    },
+  },
+  {
+    serviceIds: [],
+    tags: ['rhel', 'red hat enterprise linux', 'download', 'iso', 'boot', 'rhel 10', 'rhel10'],
+    item: {
+      id: 'inv-dl-rhel10-boot',
+      title: 'RHEL 10.0 Boot ISO',
+      description: 'ISO · 892 MB · x86_64 · Network-based install',
+      kind: 'download',
+      nav: { route: '/downloads/rhel' },
+    },
+  },
+  {
+    serviceIds: [],
+    tags: ['rhel', 'red hat enterprise linux', 'download', 'qcow2', 'kvm', 'cloud', 'image', 'rhel 10', 'rhel10'],
+    item: {
+      id: 'inv-dl-rhel10-qcow2',
+      title: 'RHEL 10.0 KVM Guest Image',
+      description: 'QCOW2 · 1.2 GB · x86_64 · Cloud & virtualization',
+      kind: 'download',
+      nav: { route: '/downloads/rhel' },
+    },
+  },
+  {
+    serviceIds: [],
+    tags: ['openshift', 'ocp', 'download', 'installer', 'oc', 'cli'],
+    item: {
+      id: 'inv-dl-openshift',
+      title: 'OpenShift 4.17 Installer',
+      description: 'CLI · openshift-install · Cluster deployment tooling',
+      kind: 'download',
+      nav: { route: '/downloads/rhel' },
+    },
+  },
+  {
+    serviceIds: [],
+    tags: ['ansible', 'aap', 'download', 'automation'],
+    item: {
+      id: 'inv-dl-ansible',
+      title: 'Ansible Automation Platform 2.5',
+      description: 'Setup bundle · Automation controller & hub',
+      kind: 'download',
+      nav: { route: '/downloads/rhel' },
+    },
+  },
 ];
 
 const kindKeywords: Partial<Record<PaletteResultKind, string[]>> = {
@@ -1728,6 +1785,7 @@ const kindKeywords: Partial<Record<PaletteResultKind, string[]>> = {
   group: ['group', 'groups'],
   workspace: ['workspace', 'workspaces'],
   playbook: ['playbook', 'playbooks'],
+  download: ['download', 'downloads', 'iso', 'image'],
 };
 
 const recordMatches = (record: InventoryRecord, query: string, service?: SearchableService): boolean => {
@@ -2326,6 +2384,27 @@ export const resolveQuery = (query: string): SearchResolution => {
         },
       ],
       entities: [
+        {
+          id: 'dl-rhel10-binary',
+          title: 'RHEL 10.0 Binary DVD',
+          meta: 'ISO · 10.4 GB · x86_64 · Complete installation media',
+          kind: 'download',
+          nav: { route: '/downloads/rhel' },
+        },
+        {
+          id: 'dl-rhel10-boot',
+          title: 'RHEL 10.0 Boot ISO',
+          meta: 'ISO · 892 MB · x86_64 · Network-based install',
+          kind: 'download',
+          nav: { route: '/downloads/rhel' },
+        },
+        {
+          id: 'dl-rhel10-qcow2',
+          title: 'RHEL 10.0 KVM Guest Image',
+          meta: 'QCOW2 · 1.2 GB · x86_64 · Cloud & virtualization',
+          kind: 'download',
+          nav: { route: '/downloads/rhel' },
+        },
         {
           id: 'ent-rhel10-activation-key',
           title: 'RHEL 10 Activation Keys',

@@ -33,6 +33,7 @@ import { AppearanceSettings } from '@app/Settings/Appearance/AppearanceSettings'
 import { GeneralSettings } from '@app/Settings/General/GeneralSettings';
 import { OpenShiftBundlePage } from '@app/OpenShift/OpenShiftBundlePage';
 import { OPENSHIFT_BUNDLE_PAGES } from '@app/OpenShift/openshiftBundleNavigation';
+import { RhelDownloads } from '@app/Downloads/RhelDownloads';
 import { VulnerabilitySystems } from '@app/Vulnerability/VulnerabilitySystems';
 import { VulnerabilityCVEs } from '@app/Vulnerability/VulnerabilityCVEs';
 import { SystemDetail } from '@app/Vulnerability/SystemDetail';
@@ -265,6 +266,12 @@ const routes: AppRouteConfig[] = [
     exact: true,
     path: '/search',
     title: 'Search Results | Red Hat Hybrid Cloud Console',
+  },
+  {
+    element: <RhelDownloads />,
+    exact: true,
+    path: '/downloads/rhel',
+    title: 'Red Hat Enterprise Linux Downloads | Red Hat Hybrid Cloud Console',
   },
   {
     element: <VulnerabilitySystems />,
