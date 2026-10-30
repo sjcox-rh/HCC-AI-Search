@@ -84,16 +84,17 @@ const resultTypeIcon: Record<ResultKind, React.ReactNode> = {
   suggestion: <SearchIcon />,
 };
 
-type ResultGroupKey = 'services' | 'inventories' | 'learning' | 'playbooks';
+type ResultGroupKey = 'services' | 'inventories' | 'downloads' | 'learning' | 'playbooks';
 
 const resultGroupLabel: Record<ResultGroupKey, string> = {
   services: 'Services & pages',
   inventories: 'Inventories',
+  downloads: 'Product downloads',
   learning: 'Learning resources',
   playbooks: 'Playbooks & actions',
 };
 
-const resultGroupOrder: ResultGroupKey[] = ['services', 'inventories', 'learning', 'playbooks'];
+const resultGroupOrder: ResultGroupKey[] = ['services', 'inventories', 'downloads', 'learning', 'playbooks'];
 
 const kindToGroup = (kind: ResultKind): ResultGroupKey => {
   switch (kind) {
@@ -109,6 +110,8 @@ const kindToGroup = (kind: ResultKind): ResultGroupKey => {
       return 'inventories';
     case 'documentation':
       return 'learning';
+    case 'download':
+      return 'downloads';
     case 'playbook':
     case 'action':
     case 'suggestion':
@@ -182,6 +185,7 @@ const SearchResults: React.FunctionComponent = () => {
     const groups: Record<ResultGroupKey, { item: PaletteAction; kind: ResultKind }[]> = {
       services: [],
       inventories: [],
+      downloads: [],
       learning: [],
       playbooks: [],
     };
@@ -215,10 +219,16 @@ const SearchResults: React.FunctionComponent = () => {
       if (kind === 'service') addIfNew(item, kind);
     });
 
-    // Then: first entity
-    if (resolution.entities.length > 0) {
-      const item = resolution.entities[0];
-      addIfNew(item, entityKind(item));
+    // Then: first download entity (if any)
+    const firstDownload = resolution.entities.find((item) => item.kind === 'download');
+    if (firstDownload) {
+      addIfNew(firstDownload, 'download');
+    }
+
+    // Then: first non-download entity
+    const firstNonDownload = resolution.entities.find((item) => item.kind !== 'download');
+    if (firstNonDownload) {
+      addIfNew(firstNonDownload, entityKind(firstNonDownload));
     }
 
     // Then: first doc
@@ -233,8 +243,8 @@ const SearchResults: React.FunctionComponent = () => {
       if (kind !== 'service') addIfNew(item, kind);
     });
 
-    // Fill from entities
-    resolution.entities.slice(1).forEach((item) => {
+    // Fill from remaining entities
+    resolution.entities.forEach((item) => {
       addIfNew(item, entityKind(item));
     });
 

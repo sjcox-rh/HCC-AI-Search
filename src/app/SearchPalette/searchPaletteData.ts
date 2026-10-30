@@ -2343,6 +2343,12 @@ export const resolveQuery = (query: string): SearchResolution => {
             nav: { route: '/overview', filters: ['RHEL 10'] },
           },
           {
+            id: 'open-rhel10-downloads',
+            label: 'Download RHEL 10',
+            variant: 'secondary',
+            nav: { route: '/downloads/rhel' },
+          },
+          {
             id: 'open-rhel10-upgrade',
             label: 'Plan upgrade to RHEL 10',
             variant: 'secondary',
