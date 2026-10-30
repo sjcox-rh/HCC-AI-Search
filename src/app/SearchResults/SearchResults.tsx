@@ -23,6 +23,7 @@ import {
   AngleRightIcon,
   BookOpenIcon,
   ClusterIcon,
+  DownloadIcon,
   HddIcon,
   HomeIcon,
   LayerGroupIcon,
@@ -62,6 +63,7 @@ const resultTypeLabel: Record<ResultKind, string> = {
   workspace: 'Workspace',
   role: 'Role',
   support: 'Support',
+  download: 'Download',
   suggestion: 'Suggestion',
 };
 
@@ -78,6 +80,7 @@ const resultTypeIcon: Record<ResultKind, React.ReactNode> = {
   workspace: <FolderOpenIcon />,
   role: <ShieldAltIcon />,
   support: <HeadsetIcon />,
+  download: <DownloadIcon />,
   suggestion: <SearchIcon />,
 };
 
