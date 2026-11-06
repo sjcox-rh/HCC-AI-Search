@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { SearchPalette, SearchPaletteProps } from '@app/SearchPalette/SearchPalette';
 import { DemoFlowControllers, useDemoFlow } from './DemoFlowContext';
-import { DemoFlowStepper } from './DemoFlowStepper';
 
 export const DemoFlowWiring: React.FunctionComponent<{ controllers: DemoFlowControllers }> = ({
   controllers,
@@ -12,7 +11,7 @@ export const DemoFlowWiring: React.FunctionComponent<{ controllers: DemoFlowCont
     registerControllers(controllers);
   }, [controllers, registerControllers]);
 
-  return <DemoFlowStepper />;
+  return null;
 };
 
 type SearchPaletteDemoProps = Omit<SearchPaletteProps, 'onViewInHelpPanel' | 'onAskLightspeed'>;

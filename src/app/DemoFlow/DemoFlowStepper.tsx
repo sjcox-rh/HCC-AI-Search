@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Button, Label } from '@patternfly/react-core';
-import { DEMO_STEPS, PROTOTYPE_VERSION_LABEL } from './demoFlowData';
+import { DEMO_STEPS } from './demoFlowData';
 import { useDemoFlow } from './DemoFlowContext';
 import './DemoFlow.css';
 
@@ -22,7 +22,6 @@ export const DemoFlowStepper: React.FunctionComponent = () => {
 
   return (
     <div className="demo-flow-stepper" role="region" aria-label="Demo flow controls">
-      <span className="demo-flow-stepper__version">{PROTOTYPE_VERSION_LABEL}</span>
       <span className="demo-flow-stepper__label">Demo Flow:</span>
       <div className="demo-flow-stepper__steps">
         {DEMO_STEPS.map((item, index) => (

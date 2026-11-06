@@ -218,3 +218,39 @@
   color: #b3225a;
 }
 
+.demo-notes__demo-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-block-end: 10px;
+}
+
+.demo-notes__demo-flow .demo-flow-stepper {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px;
+  font-size: 12px;
+}
+
+.demo-notes__demo-flow .demo-flow-stepper__steps {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.demo-notes__demo-flow .demo-flow-stepper__arrow {
+  display: none;
+}
+
+.demo-notes__demo-flow .demo-flow-stepper__actions {
+  margin-inline-start: 0;
+  width: 100%;
+}
+
+.demo-notes__demo-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+

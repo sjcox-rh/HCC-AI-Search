@@ -1,6 +1,10 @@
 import * as React from 'react';
+import { Button } from '@patternfly/react-core';
 import { useFeedbackMode } from '@app/FeedbackOverlay/FeedbackOverlay';
+import { DemoFlowStepper } from '@app/DemoFlow/DemoFlowStepper';
+import { useDemoFlowOptional } from '@app/DemoFlow/DemoFlowContext';
 import './DemoNotes.css';
+import '@app/DemoFlow/DemoFlow.css';
 
 interface Prompt {
   label: string;
@@ -123,9 +127,15 @@ const demoAreas: Area[] = [
           { label: 'Show me all RHEL hosts with unresolved vulnerabilities', type: 'ai' },
         ],
       },
+    ],
+  },
+  {
+    id: 'help-panel',
+    name: 'Help Panel',
+    useCases: [
       {
         id: 'rhel10-migration-demo',
-        title: 'V2.2 Search and Help — RHEL 10 migration',
+        title: 'RHEL 10 migration & Image Mode',
         description:
           'End-to-end flow: Global Search → Help Panel upgrade guide → Lightspeed fleet compatibility analysis.',
         prompts: [
@@ -148,12 +158,13 @@ const DemoNotes: React.FunctionComponent<DemoNotesProps> = ({
   forceCollapsed = false,
 }) => {
   const commentMode = useFeedbackMode();
+  const demo = useDemoFlowOptional();
   const [isOpen, setIsOpen] = React.useState(true);
   const [expandedAreas, setExpandedAreas] = React.useState<Set<string>>(
     () => new Set(demoAreas.map((a) => a.id)),
   );
   const [expandedUseCases, setExpandedUseCases] = React.useState<Set<string>>(
-    () => new Set(),
+    () => new Set(['rhel10-migration-demo']),
   );
 
   const toggleArea = (id: string) => {
@@ -251,6 +262,42 @@ const DemoNotes: React.FunctionComponent<DemoNotesProps> = ({
                             <p className="demo-notes__uc-desc">
                               {uc.description}
                             </p>
+
+                            {uc.id === 'rhel10-migration-demo' && demo && (
+                              <div className="demo-notes__demo-flow">
+                                <DemoFlowStepper />
+                                <div className="demo-notes__demo-actions">
+                                  <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    isBlock
+                                    onClick={() => demo.openMigrationDoc()}
+                                  >
+                                    Open guide in Help Panel
+                                  </Button>
+                                  <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    isBlock
+                                    onClick={() =>
+                                      demo.askLightspeedFromSearch(
+                                        'Upgrading to RHEL 10 & Adopting Image Mode',
+                                      )
+                                    }
+                                  >
+                                    Ask Lightspeed
+                                  </Button>
+                                  <Button
+                                    variant="primary"
+                                    size="sm"
+                                    isBlock
+                                    onClick={() => demo.analyzeFleetInLightspeed()}
+                                  >
+                                    Analyze fleet in Lightspeed
+                                  </Button>
+                                </div>
+                              </div>
+                            )}
 
                             {navPrompts.length > 0 && (
                               <div className="demo-notes__prompt-group">
