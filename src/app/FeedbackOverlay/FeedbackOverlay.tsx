@@ -1,5 +1,17 @@
 import * as React from 'react';
 import { createPortal } from 'react-dom';
+import {
+  MenuToggle,
+  type MenuToggleElement,
+  Select,
+  SelectList,
+  SelectOption,
+} from '@patternfly/react-core';
+import {
+  LATEST_PROTOTYPE_VERSION,
+  PROTOTYPE_VERSIONS,
+  resolvePrototypeVersionFromPath,
+} from './prototypeVersions';
 import './FeedbackOverlay.css';
 
 const WEBHOOK_URL = 'https://script.google.com/a/macros/redhat.com/s/AKfycbxNWhEZpO1uBGXqPPRcfX5n9wCo60I0UVLi4T3DyNJY4UU1fOMXSTK6uAepU1H1WJSG4g/exec';
@@ -263,6 +275,22 @@ const FeedbackOverlay: React.FC<FeedbackOverlayProps> = ({ searchQuery = '', sea
     setPins((prev) => prev.filter((p) => p.id !== id));
   }, []);
 
+  const [isVersionOpen, setIsVersionOpen] = React.useState(false);
+  const selectedVersion = React.useMemo(
+    () => resolvePrototypeVersionFromPath(window.location.pathname) || LATEST_PROTOTYPE_VERSION,
+    [],
+  );
+
+  const onVersionSelect = React.useCallback(
+    (_event: React.MouseEvent<Element, MouseEvent> | undefined, value: string | number | undefined) => {
+      setIsVersionOpen(false);
+      const next = PROTOTYPE_VERSIONS.find((v) => v.id === value);
+      if (!next || next.id === selectedVersion.id) return;
+      window.location.href = next.href;
+    },
+    [selectedVersion.id],
+  );
+
   const portalContent = (
     <>
       {/* ─── Sidebar (only when active) ─── */}
@@ -305,11 +333,43 @@ const FeedbackOverlay: React.FC<FeedbackOverlayProps> = ({ searchQuery = '', sea
       <div className={`feedback-topbar ${active ? 'feedback-topbar--active' : ''}`}>
         <div className="feedback-topbar__inner">
           <div className="feedback-topbar__versions">
-            <a href="https://sjcox-rh.github.io/HCC-AI-Search/v1/" className="feedback-topbar__version-link feedback-topbar__version-link--active">V1</a>
-            <span className="feedback-topbar__version-sep">|</span>
-            <a href="https://sjcox-rh.github.io/HCC-AI-Search/v2/" className="feedback-topbar__version-link feedback-topbar__version-link--inactive">V2</a>
-            <span className="feedback-topbar__version-sep">|</span>
-            <a href="https://sjcox-rh.github.io/HCC-AI-Search/" className="feedback-topbar__version-link feedback-topbar__version-link--inactive">V2.2 Search and Help</a>
+            <span className="feedback-topbar__version-label" id="prototype-version-label">
+              Version:
+            </span>
+            <Select
+              id="prototype-version-select"
+              isOpen={isVersionOpen}
+              selected={selectedVersion.id}
+              onSelect={onVersionSelect}
+              onOpenChange={(nextOpen) => setIsVersionOpen(nextOpen)}
+              toggle={(toggleRef: React.RefObject<MenuToggleElement>) => (
+                <MenuToggle
+                  ref={toggleRef}
+                  onClick={() => setIsVersionOpen((open) => !open)}
+                  isExpanded={isVersionOpen}
+                  aria-labelledby="prototype-version-label prototype-version-toggle"
+                  id="prototype-version-toggle"
+                  className="feedback-topbar__version-toggle"
+                >
+                  {selectedVersion.label}
+                </MenuToggle>
+              )}
+              shouldFocusToggleOnSelect
+              popperProps={{ appendTo: () => document.body, position: 'left' }}
+            >
+              <SelectList aria-labelledby="prototype-version-label">
+                {PROTOTYPE_VERSIONS.map((version) => (
+                  <SelectOption
+                    key={version.id}
+                    value={version.id}
+                    isSelected={version.id === selectedVersion.id}
+                    description={version.id === LATEST_PROTOTYPE_VERSION.id ? 'Latest' : undefined}
+                  >
+                    {version.label}
+                  </SelectOption>
+                ))}
+              </SelectList>
+            </Select>
           </div>
           <div className="feedback-topbar__center">
             <span className="feedback-topbar__label">💬 Comment Mode</span>
