@@ -7,11 +7,15 @@ import FeedbackIcon from '@app/bgimages/feedback-icon.svg';
 import BugIcon from '@app/bgimages/bug-icon.svg';
 import DirectionIcon from '@app/bgimages/direction-icon.svg';
 import RedHatLogo from '@app/bgimages/redhat-logo.svg';
-import { SearchPalette } from '@app/SearchPalette/SearchPalette';
 import { getShortcutLabel } from '@app/SearchPalette/searchPaletteData';
 import '@app/SearchPalette/SearchPalette.css';
 import { DemoNotes } from '@app/DemoNotes/DemoNotes';
 import { FeedbackOverlay } from '@app/FeedbackOverlay/FeedbackOverlay';
+import { DemoFlowProvider } from '@app/DemoFlow/DemoFlowContext';
+import { DemoFlowWiring, SearchPaletteWithDemo } from '@app/DemoFlow/DemoFlowWiring';
+import { LightspeedChatPanel } from '@app/DemoFlow/LightspeedChatPanel';
+import { Rhel10MigrationHelpContent } from '@app/DemoFlow/Rhel10MigrationHelpContent';
+import { DEMO_SEARCH_QUERY, RHEL10_MIGRATION_DOC_TITLE } from '@app/DemoFlow/demoFlowData';
 import {
   Avatar,
   Badge,
@@ -3821,279 +3825,11 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
       
       case 'custom':
         if (tab.id === 'comments') {
-          return (
-            <div style={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: '0' }}>
-              {/* Chat Header */}
-              <div style={{ 
-                padding: '16px', 
-                borderBottom: '1px solid #d2d2d2', 
-                backgroundColor: 'white',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '8px',
-                flexShrink: 0
-              }}>
-                {/* First row: Hamburger, Icon, Title */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <Button
-                    variant="plain"
-                    style={{
-                      padding: '4px',
-                      color: '#666'
-                    }}
-                    aria-label="Chat options menu"
-                  >
-                    <BarsIcon style={{ width: '16px', height: '16px' }} />
-                  </Button>
-                  <div style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #F56E6E 0%, #5E40BE 100%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    <CommentsIcon style={{ width: '16px', height: '16px', color: 'white' }} />
-                  </div>
-                  <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#151515' }}>
-                    Ask Red Hat
-                  </div>
-                </div>
-                
-                {/* Second row: Full width dropdown */}
-                <div style={{ width: '100%' }}>
-                  <Dropdown
-                    isOpen={false}
-                    onSelect={() => {}}
-                    toggle={(toggleRef: React.Ref<any>) => (
-                      <MenuToggle
-                        ref={toggleRef}
-                        isExpanded={false}
-                        style={{
-                          width: '100%',
-                          padding: '8px 12px',
-                          fontSize: '14px',
-                          fontWeight: 'bold',
-                          color: '#151515',
-                          textAlign: 'left',
-                          justifyContent: 'flex-start',
-                          backgroundColor: 'transparent',
-                          border: '1px solid #d2d2d2',
-                          borderRadius: '4px'
-                        }}
-                      >
-                        Agent: General Red Hat
-                      </MenuToggle>
-                    )}
-                    shouldFocusToggleOnSelect
-                  >
-                    <DropdownList>
-                      <DropdownItem>Agent: General Red Hat</DropdownItem>
-                      <DropdownItem>Support Agent</DropdownItem>
-                      <DropdownItem>Feedback Bot</DropdownItem>
-                    </DropdownList>
-                  </Dropdown>
-                </div>
-              </div>
+          return <LightspeedChatPanel />;
+        }
 
-              {/* Chat Messages */}
-              <div style={{ 
-                flex: 1, 
-                padding: '16px', 
-                overflowY: 'auto',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '12px',
-                minHeight: '0'
-              }}>
-                {/* Bot Message */}
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-                  <div style={{
-                    width: '24px',
-                    height: '24px',
-                    borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #F56E6E 0%, #5E40BE 100%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0
-                  }}>
-                    <CommentsIcon style={{ width: '12px', height: '12px', color: 'white' }} />
-                  </div>
-                  <div style={{
-                    backgroundColor: '#f0f0f0',
-                    padding: '12px 16px',
-                    borderRadius: '18px 18px 18px 4px',
-                    maxWidth: '70%',
-                    fontSize: '14px',
-                    lineHeight: '1.4'
-                  }}>
-                    Hi! I'm here to help with your questions and feedback. How can I assist you today?
-                  </div>
-                </div>
-
-                {/* User Message */}
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', justifyContent: 'flex-end' }}>
-                  <div style={{
-                    backgroundColor: 'linear-gradient(135deg, #F56E6E 0%, #5E40BE 100%)',
-                    padding: '12px 16px',
-                    borderRadius: '18px 18px 4px 18px',
-                    maxWidth: '70%',
-                    fontSize: '14px',
-                    lineHeight: '1.4',
-                    color: 'white',
-                    background: 'linear-gradient(135deg, #F56E6E 0%, #5E40BE 100%)'
-                  }}>
-                    I have a question about the new features
-                  </div>
-                  <div style={{
-                    width: '24px',
-                    height: '24px',
-                    borderRadius: '50%',
-                    backgroundColor: '#d2d2d2',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0
-                  }}>
-                    <UserIcon style={{ width: '12px', height: '12px', color: '#666' }} />
-                  </div>
-                </div>
-
-                {/* Bot Message */}
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-                  <div style={{
-                    width: '24px',
-                    height: '24px',
-                    borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #F56E6E 0%, #5E40BE 100%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0
-                  }}>
-                    <CommentsIcon style={{ width: '12px', height: '12px', color: 'white' }} />
-                  </div>
-                  <div style={{
-                    backgroundColor: '#f0f0f0',
-                    padding: '12px 16px',
-                    borderRadius: '18px 18px 18px 4px',
-                    maxWidth: '70%',
-                    fontSize: '14px',
-                    lineHeight: '1.4'
-                  }}>
-                    I'd be happy to help! What specific features would you like to know more about? I can provide information about:
-                    <br />• New dashboard capabilities
-                    <br />• Updated user interface
-                    <br />• Enhanced security features
-                    <br />• Performance improvements
-                  </div>
-                </div>
-
-                {/* Typing Indicator */}
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-                  <div style={{
-                    width: '24px',
-                    height: '24px',
-                    borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #F56E6E 0%, #5E40BE 100%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0
-                  }}>
-                    <CommentsIcon style={{ width: '12px', height: '12px', color: 'white' }} />
-                  </div>
-                  <div style={{
-                    backgroundColor: '#f0f0f0',
-                    padding: '12px 16px',
-                    borderRadius: '18px 18px 18px 4px',
-                    fontSize: '14px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}>
-                    <div style={{ 
-                      width: '6px', 
-                      height: '6px', 
-                      borderRadius: '50%', 
-                      backgroundColor: '#999',
-                      animation: 'typing 1.4s infinite ease-in-out'
-                    }}></div>
-                    <div style={{ 
-                      width: '6px', 
-                      height: '6px', 
-                      borderRadius: '50%', 
-                      backgroundColor: '#999',
-                      animation: 'typing 1.4s infinite ease-in-out 0.2s'
-                    }}></div>
-                    <div style={{ 
-                      width: '6px', 
-                      height: '6px', 
-                      borderRadius: '50%', 
-                      backgroundColor: '#999',
-                      animation: 'typing 1.4s infinite ease-in-out 0.4s'
-                    }}></div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Chat Input - Pinned to Bottom */}
-              <div style={{ 
-                padding: '16px', 
-                borderTop: '1px solid #d2d2d2',
-                backgroundColor: 'white',
-                flexShrink: 0
-              }}>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <input
-                    type="text"
-                    placeholder="Type your message..."
-                    style={{
-                      flex: 1,
-                      padding: '12px 16px',
-                      border: '1px solid #d2d2d2',
-                      borderRadius: '24px',
-                      fontSize: '14px',
-                      outline: 'none',
-                      backgroundColor: 'white'
-                    }}
-                    disabled
-                  />
-                  <Button
-                    variant="primary"
-                    style={{
-                      width: '40px',
-                      height: '40px',
-                      borderRadius: '50%',
-                      background: 'linear-gradient(135deg, #F56E6E 0%, #5E40BE 100%)',
-                      border: 'none'
-                    }}
-                    disabled
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
-                      <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-                    </svg>
-                  </Button>
-                </div>
-              </div>
-
-              {/* Typing Animation CSS */}
-              <style>{`
-                @keyframes typing {
-                  0%, 60%, 100% {
-                    transform: translateY(0);
-                    opacity: 0.4;
-                  }
-                  30% {
-                    transform: translateY(-10px);
-                    opacity: 1;
-                  }
-                }
-              `}</style>
-            </div>
-          );
+        if (tab.title === RHEL10_MIGRATION_DOC_TITLE) {
+          return <Rhel10MigrationHelpContent />;
         }
         
         // Check if this is the Alert manager tab
@@ -5021,7 +4757,29 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
     </DrawerPanelContent>
   );
 
+  const demoControllers = React.useMemo(
+    () => ({
+      openHelpPanelWithTab,
+      openLightspeedTab: () => {
+        setIsDrawerExpanded(true);
+        setActiveTabKey('comments');
+        if (isNotificationDrawerOpen) {
+          setIsNotificationDrawerOpen(false);
+        }
+      },
+      openSearchWithQuery: (query: string) => {
+        setAiSearchQuery(query || DEMO_SEARCH_QUERY);
+        setIsSearchPaletteOpen(true);
+      },
+      closeSearchPalette: () => {
+        setIsSearchPaletteOpen(false);
+      },
+    }),
+    [isNotificationDrawerOpen, openHelpPanelWithTab],
+  );
+
   return (
+    <DemoFlowProvider>
     <FeedbackOverlay searchQuery={aiSearchQuery} searchOpen={isSearchPaletteOpen}>
       <Page
         mainContainerId={pageId}
@@ -5049,7 +4807,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
         </Drawer>
       </Page>
 
-      <SearchPalette
+      <SearchPaletteWithDemo
         isOpen={isSearchPaletteOpen}
         onClose={() => {
           setIsSearchPaletteOpen(false);
@@ -5060,6 +4818,8 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
         onQueryChange={setAiSearchQuery}
         anchorRef={aiSearchFieldRef}
       />
+
+      <DemoFlowWiring controllers={demoControllers} />
 
       <DemoNotes
         onPromptClick={(prompt) => {
@@ -6586,9 +6346,9 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
         <Button
           variant="plain"
           onClick={() => {
-            // Open the help panel and switch to comments tab
+            // Open the help panel and switch to comments / Lightspeed tab
             setIsDrawerExpanded(true);
-            setActiveTabKey(0); // Switch to comments tab (index 0)
+            setActiveTabKey('comments');
           }}
           style={{
             width: '56px',
@@ -6650,6 +6410,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
       ))}
 
     </FeedbackOverlay>
+    </DemoFlowProvider>
   );
 };
 

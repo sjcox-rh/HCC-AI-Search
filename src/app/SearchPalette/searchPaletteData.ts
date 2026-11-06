@@ -32,6 +32,12 @@ export interface PaletteAction {
   access?: 'granted' | 'restricted';
   owner?: string;
   requestAccess?: SearchNavTarget;
+  /** Open this documentation title in the docked Help Panel */
+  helpPanelDoc?: string;
+  /** Show "Ask Lightspeed" triage action on the result row */
+  askLightspeed?: boolean;
+  /** Prefer showing Open / Help Panel / Ask Lightspeed triage buttons */
+  triageActions?: boolean;
 }
 
 export interface AiAnswer {
@@ -2001,6 +2007,14 @@ export const resolveQuery = (query: string): SearchResolution => {
     (q.includes('rhel') && q.includes('10')) ||
     (q.includes('red hat enterprise linux') && q.includes('10'));
 
+  const isRhel10Migration =
+    isRhel10 &&
+    (q.includes('migration') ||
+      q.includes('image mode') ||
+      q.includes('bootc') ||
+      q.includes('upgrade guide') ||
+      (q.includes('upgrade') && (q.includes('image') || q.includes('boot'))));
+
   const isUpdate =
     !isRhel10 &&
     (q.includes('update') || q.includes('upgrade') || q.includes('patch')) &&
@@ -2325,6 +2339,68 @@ export const resolveQuery = (query: string): SearchResolution => {
           meta: 'Documentation',
           kind: 'documentation',
           nav: { route: '/learning-resources' },
+        },
+      ],
+    };
+  }
+
+  if (!intent.answer && isRhel10Migration) {
+    intent = {
+      answer: {
+        summary:
+          'Planning a RHEL 10 migration with Image Mode starts with hardware baseline checks (x86-64-v3), choosing package mode vs bootc image rebase, and validating OpenSSL 3.2 / PQC crypto defaults. Use Image Builder for bootable container images, Insights Pre-upgrade Assistant for fleet readiness, and the upgrade guide for architecture decisions.',
+        actions: [
+          {
+            id: 'open-rhel10-migration-doc',
+            label: 'Open upgrade guide',
+            variant: 'primary',
+            nav: { route: '/learning-resources', filters: ['RHEL 10', 'Image Mode'] },
+          },
+          {
+            id: 'open-rhel10-image-builder-cta',
+            label: 'Open Image Builder',
+            variant: 'secondary',
+            nav: { route: '/overview', filters: ['Image Builder', 'RHEL 10', 'bootc'] },
+          },
+        ],
+      },
+      actions: [
+        {
+          id: 'act-rhel10-image-builder-bootc',
+          title: 'Image Builder (RHEL 10 bootc container images)',
+          description: 'Build and manage bootable container images for Image Mode deployments',
+          kind: 'service',
+          meta: 'Services / Tools · Image Builder',
+          nav: { route: '/overview', filters: ['Image Builder', 'RHEL 10', 'bootc'] },
+          triageActions: true,
+          askLightspeed: true,
+          helpPanelDoc: 'Upgrading to RHEL 10 & Adopting Image Mode',
+        },
+        {
+          id: 'act-rhel10-preupgrade',
+          title: 'Pre-upgrade Assistant: Hardware baseline check (x86-64-v3 requirement)',
+          description: 'Insights advisory for CPU baseline readiness across registered hosts',
+          kind: 'page',
+          meta: 'Insights Advisories · Pre-upgrade Assistant',
+          status: 'warning',
+          nav: { route: '/overview', filters: ['Insights', 'Pre-upgrade', 'x86-64-v3'] },
+          triageActions: true,
+          askLightspeed: true,
+          helpPanelDoc: 'Upgrading to RHEL 10 & Adopting Image Mode',
+        },
+      ],
+      entities: [],
+      docs: [
+        {
+          id: 'doc-rhel10-image-mode',
+          title: 'Upgrading to RHEL 10 & Adopting Image Mode',
+          description: 'Requirements, architecture guidance, and migration checklist',
+          meta: 'Documentation & Guides · Migration',
+          kind: 'documentation',
+          nav: { route: '/learning-resources', filters: ['RHEL 10', 'Image Mode'] },
+          triageActions: true,
+          askLightspeed: true,
+          helpPanelDoc: 'Upgrading to RHEL 10 & Adopting Image Mode',
         },
       ],
     };

@@ -70,6 +70,8 @@ export interface SearchPaletteProps {
   query: string;
   onQueryChange: (value: string) => void;
   anchorRef: React.RefObject<HTMLElement | null>;
+  onViewInHelpPanel?: (docTitle: string, item: PaletteAction) => void;
+  onAskLightspeed?: (item: PaletteAction) => void;
 }
 
 interface FlatItem {
@@ -240,6 +242,8 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
   query,
   onQueryChange,
   anchorRef,
+  onViewInHelpPanel,
+  onAskLightspeed,
 }) => {
   const navigate = useNavigate();
   const panelRef = React.useRef<HTMLDivElement>(null);
@@ -632,11 +636,12 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
 
   const renderRow = (item: PaletteAction, kind: ResultKind) => {
     const isRestricted = item.access === 'restricted';
-    const RowTag = isRestricted ? 'div' : 'button';
+    const showTriage = Boolean(item.triageActions) && !isRestricted;
+    const RowTag = isRestricted || showTriage ? 'div' : 'button';
 
     return (
       <RowTag
-        {...(!isRestricted ? { type: 'button' as const } : {})}
+        {...(!isRestricted && !showTriage ? { type: 'button' as const } : {})}
         key={item.id}
         id={`ai-search-item-${item.id}`}
         className={`ai-search-palette__item${isActive(item.id) ? ' is-active' : ''}${
@@ -655,7 +660,11 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
             setSelectedIndex(index);
           }
         }}
-        onClick={() => runAction(item)}
+        onClick={() => {
+          if (!showTriage) {
+            runAction(item);
+          }
+        }}
       >
         <Tooltip
           content={isRestricted ? `${resultTypeLabel[kind]} · Access required` : resultTypeLabel[kind]}
@@ -679,6 +688,49 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
             <span className="ai-search-palette__item-meta">Owner: {item.owner}</span>
           )}
         </span>
+        {showTriage && (
+          <span className="ai-search-palette__item-actions">
+            <Button
+              variant="link"
+              isInline
+              size="sm"
+              onClick={(event) => {
+                event.stopPropagation();
+                runAction(item);
+              }}
+            >
+              Open page
+            </Button>
+            {item.helpPanelDoc && onViewInHelpPanel && (
+              <Tooltip content="View in Help Panel">
+                <Button
+                  variant="plain"
+                  aria-label={`View ${item.title} in Help Panel`}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onViewInHelpPanel(item.helpPanelDoc as string, item);
+                  }}
+                >
+                  <BookOpenIcon />
+                </Button>
+              </Tooltip>
+            )}
+            {item.askLightspeed && onAskLightspeed && (
+              <Tooltip content="Ask Lightspeed">
+                <Button
+                  variant="plain"
+                  aria-label={`Ask Lightspeed about ${item.title}`}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onAskLightspeed(item);
+                  }}
+                >
+                  <img src={SparkleIcon} alt="" width={16} height={16} />
+                </Button>
+              </Tooltip>
+            )}
+          </span>
+        )}
         {isRestricted && (
           <span className="ai-search-palette__item-access">
             <Label status="warning" isCompact>
