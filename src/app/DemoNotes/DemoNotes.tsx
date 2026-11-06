@@ -123,6 +123,17 @@ const demoAreas: Area[] = [
           { label: 'Show me all RHEL hosts with unresolved vulnerabilities', type: 'ai' },
         ],
       },
+      {
+        id: 'rhel10-migration-demo',
+        title: 'V2.2 Search and Help — RHEL 10 migration',
+        description:
+          'End-to-end flow: Global Search → Help Panel upgrade guide → Lightspeed fleet compatibility analysis.',
+        prompts: [
+          { label: 'RHEL 10 migration image mode', type: 'nav' },
+          { label: 'RHEL 10 image mode bootc', type: 'nav' },
+          { label: 'RHEL 10 migration', type: 'ai' },
+        ],
+      },
     ],
   },
 ];
