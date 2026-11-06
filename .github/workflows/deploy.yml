@@ -68,13 +68,34 @@ jobs:
       - name: Copy V1 into V2 dist
         run: cp -r v1-source/dist dist/v1
 
+      # Checkout V2.2 Search and Help branch and build into dist/v2.2
+      - name: Checkout V2.2 source
+        uses: actions/checkout@v4
+        with:
+          ref: v2.2
+          path: v2.2-source
+
+      - name: Install V2.2 dependencies
+        run: cd v2.2-source && npm ci --legacy-peer-deps
+
+      - name: Build V2.2
+        run: |
+          cd v2.2-source && npm run build
+          sed -i 's|<base href="/">|<base href="/HCC-AI-Search/v2.2/">|' dist/index.html
+          sed -i 's|pathSegmentsToKeep = 1|pathSegmentsToKeep = 2|' dist/404.html
+        env:
+          ASSET_PATH: /HCC-AI-Search/v2.2/
+
+      - name: Copy V2.2 into V2 dist
+        run: cp -r v2.2-source/dist dist/v2.2
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload dist directory (contains both V2 at root and V1 at /v1)
+          # Upload dist (V2 root, V1 at /v1, V2.2 Search and Help at /v2.2)
           path: './dist'
 
       - name: Deploy to GitHub Pages
