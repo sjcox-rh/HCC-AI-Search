@@ -38,6 +38,7 @@ import {
   TerminalIcon,
 } from '@patternfly/react-icons';
 import SparkleIcon from '@app/bgimages/sparkle-icon.svg';
+import { useDemoFlowOptional } from '@app/DemoFlow/DemoFlowContext';
 import {
   PaletteAction,
   PaletteResultKind,
@@ -138,6 +139,7 @@ const entityKind = (item: PaletteAction): ResultKind => {
 
 const SearchResults: React.FunctionComponent = () => {
   const navigate = useNavigate();
+  const demo = useDemoFlowOptional();
   const [searchParams] = useSearchParams();
   const query = searchParams.get('q') || '';
   const resolution = React.useMemo(() => resolveQuery(query), [query]);
@@ -251,6 +253,20 @@ const SearchResults: React.FunctionComponent = () => {
     return top;
   }, [resolution]);
 
+  const openResult = (item: PaletteAction) => {
+    if (item.access === 'restricted') {
+      return;
+    }
+    if (item.helpPanelDoc && demo) {
+      demo.setStep(2);
+      demo.openMigrationDoc();
+      return;
+    }
+    if (item.nav) {
+      goTo(item.nav);
+    }
+  };
+
   const renderRow = (item: PaletteAction, kind: ResultKind) => {
     const isRestricted = item.access === 'restricted';
     return (
@@ -259,11 +275,9 @@ const SearchResults: React.FunctionComponent = () => {
         className={`ai-search-results__item${isRestricted ? ' is-restricted' : ''}`}
         role="button"
         tabIndex={0}
-        onClick={() => {
-          if (!isRestricted && item.nav) goTo(item.nav);
-        }}
+        onClick={() => openResult(item)}
         onKeyDown={(e) => {
-          if (e.key === 'Enter' && !isRestricted && item.nav) goTo(item.nav);
+          if (e.key === 'Enter') openResult(item);
         }}
       >
         <Tooltip content={resultTypeLabel[kind]} position="left">
