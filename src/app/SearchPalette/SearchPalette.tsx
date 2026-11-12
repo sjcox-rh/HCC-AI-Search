@@ -360,12 +360,17 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
         runPlaybook();
         return;
       }
+      if (action.helpPanelDoc && onViewInHelpPanel) {
+        addToHistory(action);
+        onViewInHelpPanel(action.helpPanelDoc, action);
+        return;
+      }
       if (action.nav) {
         addToHistory(action);
         goTo(action.nav);
       }
     },
-    [applyQuery, goTo, runPlaybook],
+    [applyQuery, goTo, onViewInHelpPanel, runPlaybook],
   );
 
   const resultGroups = React.useMemo(() => {
@@ -661,7 +666,7 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
           }
         }}
         onClick={() => {
-          if (!showTriage) {
+          if (!isRestricted) {
             runAction(item);
           }
         }}
@@ -690,17 +695,6 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
         </span>
         {showTriage && (
           <span className="ai-search-palette__item-actions">
-            <Button
-              variant="link"
-              isInline
-              size="sm"
-              onClick={(event) => {
-                event.stopPropagation();
-                runAction(item);
-              }}
-            >
-              Open page
-            </Button>
             {item.helpPanelDoc && onViewInHelpPanel && (
               <Tooltip content="View in Help Panel">
                 <Button

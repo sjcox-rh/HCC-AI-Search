@@ -1,8 +1,6 @@
 import * as React from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { IAppRoute, IAppRouteGroup, routes } from '@app/routes';
-import SparkleIcon from '@app/bgimages/sparkle-icon.svg';
-import CommentIcon from '@app/bgimages/comment-icon.svg';
 import FeedbackIcon from '@app/bgimages/feedback-icon.svg';
 import BugIcon from '@app/bgimages/bug-icon.svg';
 import DirectionIcon from '@app/bgimages/direction-icon.svg';
@@ -200,14 +198,16 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   const [activeTabKey, setActiveTabKey] = React.useState<string | number>('get-started');
   const [tabCounter, setTabCounter] = React.useState(3);
   
-  // Sub-tab names mapping
+  // Sub-tab names mapping (index 6 = Lightspeed chat / sparkle tab)
+  const HELP_CHAT_TAB = 6;
   const subTabNames = [
     'Search',
     'Learn', 
     'Knowledgebase',
     'APIs',
     'Support',
-    'Ask Red Hat'
+    'Ask Red Hat',
+    'Ask Lightspeed',
   ];
 
   // Complete APIs tab data - all content (43 APIs from Red Hat API Catalog)
@@ -352,9 +352,9 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   ];
 
   const [tabs, setTabs] = React.useState<TabContent[]>([
-    { id: 'comments', title: '', originalTitle: '', type: 'custom', activeSubTab: 0, closable: false, hasUserInteracted: false },
     { id: 'get-started', title: 'Find help', originalTitle: 'Find help', type: 'overview', activeSubTab: 0, closable: false, hasUserInteracted: false }
   ]);
+  const [openedHelpDoc, setOpenedHelpDoc] = React.useState<string | null>(null);
   
   // Create a ref to always have access to the current tabs state (for closures)
   const tabsRef = React.useRef(tabs);
@@ -1770,6 +1770,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
     newTabs[tabIndex].activeSubTab = subTabIndex;
     
     newTabs[tabIndex].hasUserInteracted = true;
+    setOpenedHelpDoc(null);
     
     // Reset feedback view when clicking on the Feedback tab (subTabIndex 5)
     if (subTabIndex === 5) {
@@ -1794,6 +1795,51 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
     
     setTabs(newTabs);
   };
+
+  const openLightspeedView = React.useCallback(() => {
+    setOpenedHelpDoc(null);
+    setActiveTabKey('get-started');
+    setTabs((prevTabs) =>
+      prevTabs.map((tab) =>
+        tab.id === 'get-started'
+          ? {
+              ...tab,
+              activeSubTab: HELP_CHAT_TAB,
+              hasUserInteracted: true,
+              title: 'Ask Lightspeed',
+              originalTitle: 'Ask Lightspeed',
+              searchQuery: '',
+            }
+          : tab,
+      ),
+    );
+    setIsDrawerExpanded(true);
+    setIsNotificationDrawerOpen(false);
+  }, []);
+
+  const resolveHelpDocTarget = React.useCallback((title: string) => {
+    if (title === 'Share feedback') {
+      return { subTab: 5, docTitle: null as string | null, feedbackView: 'general' as const };
+    }
+    if (title === 'Dashboard widgets') {
+      return { subTab: 0, docTitle: null as string | null };
+    }
+    if (
+      title === RHEL10_MIGRATION_DOC_TITLE ||
+      title === 'Configuring console event notifications in Slack' ||
+      title === 'Alert manager' ||
+      allLearnContent.some((item) => item.title === title)
+    ) {
+      return { subTab: 1, docTitle: title };
+    }
+    if (allKnowledgebaseContent.some((item) => item.title === title)) {
+      return { subTab: 2, docTitle: title };
+    }
+    if (allApisContent.some((item) => item.title === title)) {
+      return { subTab: 3, docTitle: title };
+    }
+    return { subTab: 1, docTitle: title };
+  }, [allApisContent, allKnowledgebaseContent, allLearnContent]);
 
   const handleContentInteraction = (tabIndex: number) => {
     const newTabs = [...tabs];
@@ -1847,68 +1893,34 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
     setIsNotificationActionsOpen(false); // Close actions dropdown when drawer closes
   };
 
-  // Function to open help panel with a new tab
-  const openHelpPanelWithTab = (title: string) => {
-    // Check if a tab with this title already exists
-    const existingTab = tabs.find(tab => tab.title === title);
-    
-    if (existingTab) {
-      // Tab already exists, just switch to it
-      setActiveTabKey(existingTab.id);
-      
-      // Clear search query when switching tabs
-      setSearchQuery('');
-      
-      // Ensure the tab is visible (not in overflow)
-      const tabIndex = tabs.findIndex(tab => tab.id === existingTab.id);
-      if (tabIndex !== -1) {
-        setTimeout(() => {
-          ensureActiveTabVisible(tabIndex);
-        }, 100);
-      }
-    } else {
-      // Tab doesn't exist, create a new one
-      setTabCounter(prevCounter => {
-        const newTabId = `tab-${prevCounter}`;
-        // Create new tab
-        const newTab: TabContent = {
-          id: newTabId,
-          title: title,
-          originalTitle: title,
-          type: 'custom',
-          closable: true,
-          activeSubTab: 0,
-          hasUserInteracted: false
-        };
-        
-        // Add the new tab
-        setTabs(prevTabs => {
-          const updatedTabs = [...prevTabs, newTab];
-          // Switch to the new tab using its ID
-          setActiveTabKey(newTabId);
-          
-          // Clear search query when switching to new tab
-          setSearchQuery('');
-          
-          // Ensure the new active tab is visible (not in overflow)
-          const newTabIndex = updatedTabs.length - 1;
-          setTimeout(() => {
-            ensureActiveTabVisible(newTabIndex);
-          }, 100);
-          
-          return updatedTabs;
-        });
-        
-        return prevCounter + 1;
-      });
+  // Open help panel and show documentation in the matching secondary tab
+  const openHelpPanelWithTab = (title: string, _options?: Record<string, unknown>) => {
+    const target = resolveHelpDocTarget(title);
+
+    setOpenedHelpDoc(target.docTitle);
+    setActiveTabKey('get-started');
+    setSearchQuery('');
+
+    if (target.feedbackView) {
+      setFeedbackView(target.feedbackView);
     }
-    
-    // Open the drawer if it's not already open
-    if (!isDrawerExpanded) {
-      setIsDrawerExpanded(true);
-    }
-    
-    // Close notification drawer if open
+
+    setTabs((prevTabs) =>
+      prevTabs.map((tab) =>
+        tab.id === 'get-started'
+          ? {
+              ...tab,
+              activeSubTab: target.subTab,
+              hasUserInteracted: true,
+              title: target.subTab === 5 ? 'Feedback' : subTabNames[target.subTab] || tab.title,
+              originalTitle: target.subTab === 5 ? 'Feedback' : subTabNames[target.subTab] || tab.originalTitle,
+              searchQuery: '',
+            }
+          : tab,
+      ),
+    );
+
+    setIsDrawerExpanded(true);
     if (isNotificationDrawerOpen) {
       setIsNotificationDrawerOpen(false);
     }
@@ -1973,10 +1985,118 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
     setIsLogoDropdownOpen(false);
   };
 
+  const renderHelpDocBody = (title: string) => {
+    if (title === RHEL10_MIGRATION_DOC_TITLE) {
+      return <Rhel10MigrationHelpContent />;
+    }
+
+    if (title === 'Alert manager') {
+      return (
+        <div style={{ padding: '24px' }}>
+          <Content>
+            <Title headingLevel="h2" size="xl" style={{ marginBottom: '16px' }}>
+              Alert Manager Help
+            </Title>
+            <p style={{ fontSize: '14px', lineHeight: '1.6', color: '#6a6e73' }}>
+              This section provides information and guidance about using the Alert Manager feature.
+              Configure alert default settings for your workspace and learn how fired events can alert
+              users and groups through various communication channels.
+            </p>
+          </Content>
+        </div>
+      );
+    }
+
+    if (title === 'Configuring console event notifications in Slack') {
+      return (
+        <div style={{ padding: '24px' }}>
+          <Content>
+            <Title headingLevel="h2" size="xl" style={{ marginBottom: '16px' }}>
+              Configuring console event notifications in Slack
+            </Title>
+            <p style={{ fontSize: '14px', lineHeight: '1.6', color: '#6a6e73', marginBottom: '24px' }}>
+              Follow these steps to configure your console event notifications to be sent to Slack channels.
+            </p>
+
+            <Title headingLevel="h3" size="md" style={{ marginBottom: '12px', marginTop: '24px' }}>
+              Prerequisites
+            </Title>
+            <ul style={{ fontSize: '14px', lineHeight: '1.8', color: '#6a6e73', marginBottom: '24px' }}>
+              <li>Active Slack workspace with admin permissions</li>
+              <li>Red Hat Hybrid Cloud Console account</li>
+              <li>Webhook URL from your Slack workspace</li>
+            </ul>
+
+            <Title headingLevel="h3" size="md" style={{ marginBottom: '12px', marginTop: '24px' }}>
+              Step 1: Create a Slack webhook
+            </Title>
+            <p style={{ fontSize: '14px', lineHeight: '1.6', color: '#6a6e73', marginBottom: '16px' }}>
+              Navigate to your Slack workspace settings and create a new incoming webhook for the channel where you want to receive notifications.
+            </p>
+
+            <Title headingLevel="h3" size="md" style={{ marginBottom: '12px', marginTop: '24px' }}>
+              Step 2: Configure integration in console
+            </Title>
+            <p style={{ fontSize: '14px', lineHeight: '1.6', color: '#6a6e73', marginBottom: '16px' }}>
+              Go to Settings → Integrations and add a new Slack integration using your webhook URL.
+            </p>
+
+            <Title headingLevel="h3" size="md" style={{ marginBottom: '12px', marginTop: '24px' }}>
+              Step 3: Configure notification rules
+            </Title>
+            <p style={{ fontSize: '14px', lineHeight: '1.6', color: '#6a6e73', marginBottom: '16px' }}>
+              Set up which events should trigger Slack notifications in the Alert Manager settings.
+            </p>
+          </Content>
+        </div>
+      );
+    }
+
+    return (
+      <div style={{ padding: '24px' }}>
+        <Content>
+          <Title headingLevel="h2" size="xl" style={{ marginBottom: '16px' }}>
+            {title}
+          </Title>
+          <p style={{ fontSize: '14px', lineHeight: '1.6', color: '#6a6e73' }}>
+            Documentation content for this topic.
+          </p>
+        </Content>
+      </div>
+    );
+  };
+
+  const renderOpenedDocForSubTab = (subTabIndex: number) => {
+    if (!openedHelpDoc) {
+      return null;
+    }
+    const target = resolveHelpDocTarget(openedHelpDoc);
+    if (target.subTab !== subTabIndex) {
+      return null;
+    }
+    return renderHelpDocBody(openedHelpDoc);
+  };
+
   const renderSubTabs = (tabIndex: number, tab: TabContent, ariaLabel: string) => {
     const { onSearchSubmit, handleSearchKeyDown } = createSearchHandlers(tabIndex);
     
     return (
+    <div className="help-panel-body">
+      <style>{`
+        .help-panel-tabs-wrap > .pf-v6-c-tabs > .pf-v6-c-tabs__list {
+          width: 100%;
+        }
+        .help-panel-tabs-wrap > .pf-v6-c-tabs > .pf-v6-c-tabs__list > .pf-v6-c-tabs__item:last-child {
+          margin-inline-start: auto;
+        }
+        .help-panel-body [data-tab-id="lightspeed-chat"] {
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+          min-height: 0;
+        }
+      `}</style>
+      <div className="help-panel-tabs-wrap">
     <Tabs
       isSubtab
       activeKey={tab.activeSubTab || 0}
@@ -2666,6 +2786,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
             max-width: 100% !important;
           }
         `}</style>
+        {renderOpenedDocForSubTab(1) || (
         <div className="learn-menu">
           <div style={{ padding: '16px 16px 12px 16px', fontSize: '14px', lineHeight: '1.5', color: 'var(--pf-v6-global--Color--200)' }}>
             Find product documentation, quick starts, learning paths, and more related to services available on the Hybrid Cloud Console. For more details, browse the <a href="https://console.redhat.com/learning-resources?tab=all" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--pf-v6-global--link--Color, #0066cc)', textDecoration: 'none' }} onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'} onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}>All Learning Catalog</a>.
@@ -2888,6 +3009,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
             />
           </div>
         </div>
+        )}
       </Tab>
       <Tab 
         eventKey={2} 
@@ -3000,6 +3122,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
             max-width: 100% !important;
           }
         `}</style>
+        {renderOpenedDocForSubTab(2) || (
         <div className="learn-menu">
           <div style={{ padding: '16px 16px 12px 16px', fontSize: '14px', lineHeight: '1.5', color: 'var(--pf-v6-global--Color--200)' }}>
             Find knowledgebase articles. See all knowledgebase and support content on the <a href="https://access.redhat.com/kb/search?document_kinds=Article&start=0&products=Red+Hat+Hybrid+Cloud+Console" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--pf-v6-global--link--Color, #0066cc)', textDecoration: 'none' }} onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'} onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}>Customer Portal</a>.
@@ -3121,6 +3244,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
             />
           </div>
         </div>
+        )}
       </Tab>
       <Tab 
         eventKey={3} 
@@ -3237,6 +3361,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
             max-width: 100% !important;
           }
         `}</style>
+        {renderOpenedDocForSubTab(3) || (
         <div className="learn-menu">
           <div style={{ padding: '16px 16px 12px 16px', fontSize: '14px', lineHeight: '1.5', color: 'var(--pf-v6-global--Color--200)' }}>
             Browse the APIs for Hybrid Cloud Console services. See full API documentation on the <a href="https://developers.redhat.com/api-catalog/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--pf-v6-global--link--Color, #0066cc)', textDecoration: 'none' }} onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'} onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}>API documentation catalog</a>.
@@ -3375,6 +3500,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
             })()}
           </div>
         </div>
+        )}
       </Tab>
       <Tab 
         eventKey={4} 
@@ -3741,7 +3867,24 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
           );
         })()}
       </Tab>
+      <Tab
+        eventKey={HELP_CHAT_TAB}
+        title={
+          <Tooltip content="Ask Lightspeed">
+            <span className="help-panel-chat-tab-title">
+              <CommentsIcon style={{ width: '16px', height: '16px' }} />
+            </span>
+          </Tooltip>
+        }
+        aria-label="Ask Lightspeed"
+      >
+        <div data-tab-id="lightspeed-chat">
+          <LightspeedChatPanel />
+        </div>
+      </Tab>
     </Tabs>
+      </div>
+    </div>
     );
   };
 
@@ -4088,6 +4231,27 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
               </Button>
             </Tooltip>
 
+            {/* Chat / Lightspeed */}
+            <Tooltip
+              content="Ask Lightspeed"
+              position="bottom"
+              {...(isDrawerExpanded && (tabs.find((t) => t.id === 'get-started')?.activeSubTab === HELP_CHAT_TAB)
+                ? { isVisible: false }
+                : {})}
+            >
+              <Button
+                variant="plain"
+                onClick={openLightspeedView}
+                aria-label="Ask Lightspeed"
+                aria-expanded={
+                  isDrawerExpanded &&
+                  tabs.find((t) => t.id === 'get-started')?.activeSubTab === HELP_CHAT_TAB
+                }
+              >
+                <CommentsIcon />
+              </Button>
+            </Tooltip>
+
             {/* Help Panel */}
             <Tooltip 
               content="Help" 
@@ -4096,11 +4260,31 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
             >
               <Button
                 variant="plain"
-                onClick={onDrawerToggle}
+                onClick={() => {
+                  const helpTab = tabs.find((t) => t.id === 'get-started');
+                  if (isDrawerExpanded && helpTab?.activeSubTab === HELP_CHAT_TAB) {
+                    setOpenedHelpDoc(null);
+                    setTabs((prevTabs) =>
+                      prevTabs.map((tab) =>
+                        tab.id === 'get-started'
+                          ? {
+                              ...tab,
+                              activeSubTab: 1,
+                              hasUserInteracted: true,
+                              title: 'Learn',
+                              originalTitle: 'Learn',
+                              searchQuery: '',
+                            }
+                          : tab,
+                      ),
+                    );
+                    return;
+                  }
+                  onDrawerToggle();
+                }}
                 aria-label="Help"
                 aria-expanded={isDrawerExpanded}
               >
-                <img src={SparkleIcon} alt="" style={{ width: '16px', height: '16px', marginRight: '4px' }} />
                 Help
               </Button>
             </Tooltip>
@@ -4367,23 +4551,9 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
       isResizable
     >
       <DrawerHead>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%' }}>
         <Title headingLevel="h2" size="lg">
-            Help
+          Help
         </Title>
-          <Button
-            variant="link"
-            isInline
-            component="a"
-            href="https://status.redhat.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ fontSize: '14px' }}
-          >
-            Red Hat status page
-            <ExternalLinkAltIcon style={{ marginLeft: '4px' }} />
-          </Button>
-        </div>
         <DrawerActions>
           <DrawerCloseButton onClick={onDrawerClose} />
         </DrawerActions>
@@ -4591,71 +4761,11 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
             background-color: var(--pf-v6-global--BackgroundColor--200, #f5f5f5) !important;
           }
         `}</style>
-        <Tabs 
-          isBox
-          isOverflowHorizontal
-          activeKey={activeTabKey}
-          onSelect={handleTabClick}
-          onAdd={handleAddTab}
-          aria-label="Dashboard tabs"
-        >
-          {tabs.map((tab, index) => {
-            // Count non-comment icon tabs (text-based tabs)
-            const textBasedTabs = tabs.filter(t => t.id !== 'comments');
-            const canCloseGetStarted = textBasedTabs.length > 1;
-            
-            // Determine if this tab should be closable
-            const isClosable = tab.id === 'comments' 
-              ? false  // Comment icon tab is never closable
-              : (tab.id === 'get-started' 
-                  ? canCloseGetStarted  // Get started tab is closable only when there are multiple text-based tabs
-                  : true);  // Other text-based tabs are always closable
-            
-            // Only show 'X' on the currently active tab
-            const showCloseButton = isClosable && tab.id === activeTabKey;
-            
-            // Check if this tab needs a tooltip (title > 20 chars)
-            const needsTooltip = tab.id !== 'comments' && tab.title.length > 20;
-            
-            return (
-            <Tab 
-              key={tab.id}
-              eventKey={tab.id} 
-                title={
-                  tab.id === 'comments' ? (
-                    <div style={{ paddingLeft: '4px', paddingRight: '4px' }}>
-                      <img 
-                        src={CommentIcon} 
-                        alt="" 
-                        aria-label="Comments"
-                        style={{ width: '16px', height: '16px' }} 
-                      />
-                    </div>
-                  ) : (
-                    <div data-tab-tooltip-trigger={needsTooltip ? tab.id : undefined}>
-                      <TabTitleText>{tab.title}</TabTitleText>
-                    </div>
-                  )
-                }
-                aria-label={tab.id === 'comments' ? 'Comments tab' : `${tab.title} tab`}
-              actions={
-                  showCloseButton ? (
-                  <TabAction
-                    aria-label={`Close ${tab.title}`}
-                    onClick={(event) => handleCloseTab(event, index)}
-                  >
-                    <TimesIcon />
-                  </TabAction>
-                ) : null
-              }
-            >
-                <div data-tab-id={tab.id} style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-              {renderTabContent(tab, index)}
-                </div>
-            </Tab>
-            );
-          })}
-        </Tabs>
+        {(() => {
+          const helpTab = tabs.find((tab) => tab.id === 'get-started') || tabs[0];
+          const helpTabIndex = Math.max(0, tabs.findIndex((tab) => tab.id === 'get-started'));
+          return helpTab ? renderSubTabs(helpTabIndex, helpTab, 'Help panel tabs') : null;
+        })()}
       </DrawerContentBody>
     </DrawerPanelContent>
   );
@@ -4761,11 +4871,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
     () => ({
       openHelpPanelWithTab,
       openLightspeedTab: () => {
-        setIsDrawerExpanded(true);
-        setActiveTabKey('comments');
-        if (isNotificationDrawerOpen) {
-          setIsNotificationDrawerOpen(false);
-        }
+        openLightspeedView();
       },
       openSearchWithQuery: (query: string) => {
         setAiSearchQuery(query || DEMO_SEARCH_QUERY);
@@ -4775,7 +4881,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
         setIsSearchPaletteOpen(false);
       },
     }),
-    [isNotificationDrawerOpen, openHelpPanelWithTab],
+    [openHelpPanelWithTab, openLightspeedView],
   );
 
   return (
@@ -6346,9 +6452,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
         <Button
           variant="plain"
           onClick={() => {
-            // Open the help panel and switch to comments / Lightspeed tab
-            setIsDrawerExpanded(true);
-            setActiveTabKey('comments');
+            openLightspeedView();
           }}
           style={{
             width: '56px',
