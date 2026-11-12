@@ -18,6 +18,12 @@ const WEBHOOK_URL = 'https://script.google.com/a/macros/redhat.com/s/AKfycbxNWhE
 
 const FeedbackModeContext = React.createContext(false);
 const useFeedbackMode = (): boolean => React.useContext(FeedbackModeContext);
+
+const ReferenceGuideContext = React.createContext<{ isOpen: boolean; toggle: () => void }>({
+  isOpen: false,
+  toggle: () => undefined,
+});
+const useReferenceGuide = (): { isOpen: boolean; toggle: () => void } => React.useContext(ReferenceGuideContext);
 const FEEDBACK_DOC_URL = 'https://docs.google.com/document/d/1HMGAW6fX3Rl3ausA6uvCX3F4nLh-nIderV87B9RM05M/edit';
 const STORAGE_KEY = 'hcc-feedback-pins';
 
@@ -211,6 +217,7 @@ interface FeedbackOverlayProps {
 
 const FeedbackOverlay: React.FC<FeedbackOverlayProps> = ({ searchQuery = '', searchOpen = false, children }) => {
   const [active, setActive] = React.useState(false);
+  const [referenceGuideOpen, setReferenceGuideOpen] = React.useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
   const [pins, setPins] = React.useState<FeedbackPin[]>(() => readPins());
   const [pendingPin, setPendingPin] = React.useState<{ x: number; y: number; component: string } | null>(null);
@@ -378,14 +385,25 @@ const FeedbackOverlay: React.FC<FeedbackOverlayProps> = ({ searchQuery = '', sea
               <span className="feedback-topbar__slider" />
             </label>
           </div>
+          <button
+            type="button"
+            className={`feedback-topbar__reference${referenceGuideOpen ? ' feedback-topbar__reference--open' : ''}`}
+            onClick={() => setReferenceGuideOpen((open) => !open)}
+            aria-expanded={referenceGuideOpen}
+            aria-label={referenceGuideOpen ? 'Close reference guide' : 'Open reference guide'}
+          >
+            Reference Guide
+          </button>
         </div>
       </div>
       <FeedbackModeContext.Provider value={active}>
-        {children}
+        <ReferenceGuideContext.Provider value={{ isOpen: referenceGuideOpen, toggle: () => setReferenceGuideOpen((open) => !open) }}>
+          {children}
+        </ReferenceGuideContext.Provider>
       </FeedbackModeContext.Provider>
       {createPortal(portalContent, document.body)}
     </>
   );
 };
 
-export { FeedbackOverlay, useFeedbackMode };
+export { FeedbackOverlay, useFeedbackMode, useReferenceGuide };

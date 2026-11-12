@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Button } from '@patternfly/react-core';
-import { useFeedbackMode } from '@app/FeedbackOverlay/FeedbackOverlay';
+import { useFeedbackMode, useReferenceGuide } from '@app/FeedbackOverlay/FeedbackOverlay';
 import { DemoFlowStepper } from '@app/DemoFlow/DemoFlowStepper';
 import { useDemoFlowOptional } from '@app/DemoFlow/DemoFlowContext';
 import './DemoNotes.css';
@@ -158,8 +158,8 @@ const DemoNotes: React.FunctionComponent<DemoNotesProps> = ({
   forceCollapsed = false,
 }) => {
   const commentMode = useFeedbackMode();
+  const { isOpen } = useReferenceGuide();
   const demo = useDemoFlowOptional();
-  const [isOpen, setIsOpen] = React.useState(true);
   const [expandedAreas, setExpandedAreas] = React.useState<Set<string>>(
     () => new Set(demoAreas.map((a) => a.id)),
   );
@@ -196,15 +196,6 @@ const DemoNotes: React.FunctionComponent<DemoNotesProps> = ({
       className={`demo-notes${isOpen && !forceCollapsed && !commentMode ? '' : ' demo-notes--collapsed'}`}
       aria-label="Demo notes and test prompts"
     >
-      <button
-        type="button"
-        className="demo-notes__edge-toggle"
-        onClick={() => setIsOpen((prev) => !prev)}
-        aria-label={isOpen ? 'Collapse reference guide' : 'Expand reference guide'}
-      >
-        <span className="demo-notes__edge-arrow">{isOpen ? '▸' : '◂'}</span>
-      </button>
-
       <div className="demo-notes__header">
         <span className="demo-notes__title">Reference Guide</span>
       </div>
