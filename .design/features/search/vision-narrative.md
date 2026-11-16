@@ -1,84 +1,87 @@
-# Vision Narrative: HCC Search
+# Vision Narrative: Connected Search and Help
 
-Priya is a composite cloud ops engineer, not a named study participant. This repo has no persona files. The brief names two roles, org admins and cloud ops engineers. One person carries the story: Priya administers her org's console.redhat.com access and is the person on call when production hosts need a fix. Quotes below are from the Connected Experience study (Q3 2026, n=8, Richardson and Tan) unless another source is named.
+Sam is a system administrator at Money, Inc. He is a composite based on research, and he is also a cartoon. His priority is to get servers trusted and workload-ready without hassle. The authoritative answer is hard to find, a server is not ready until it is reachable, registered, and patched, and one script does not cover cloud, on-prem, and metal. He has to move quickly without adding downtime, regressions, or compliance risk, while alerts and advisories compete for his attention. Quotes are from the Connected Experience study (Q3 2026, n=8, Richardson and Tan) unless another source is named.
 
 ## The Setup
 
-It is 8:40 on a Tuesday morning. Priya, a cloud ops engineer, has twenty minutes before standup. Overnight, production RHEL hosts picked up critical CVEs. She needs to tell the room which hosts are affected, whether a case is already open, and where the fix is documented. If search fails her, she will spend the twenty minutes clicking through services and a second browser tab, and she will walk into standup without an answer.
+It is 8:40 on a Tuesday morning. Sam has twenty minutes before standup. Leadership wants a RHEL 10 migration plan, and Image Mode is on the table. His job is to get those servers trusted and workload-ready. He needs to tell the room which hosts can move, which cannot, and what rule he is using. If he spends the twenty minutes hunting for the guide, he will walk in with a link and no host list.
 
-## Today: Priya's Current Experience
+## Today: Sam's Current Experience
 
-### Beat 1: She searches for the hosts
+### Beat 1: Search does not find the guide
 
-Priya clicks the masthead on [console.redhat.com](https://console.redhat.com/) and types the shorthand she always uses: `rhel critical cve`.
+Sam clicks the masthead on console.redhat.com and types the shorthand he would actually use: RHEL 10 migration image mode.
 
-Nothing useful comes back. Current search only returns services, and only about 27% of queries are even for content it can return (Q3 query analysis, Shakshober). A 2024 analysis put the zero-result rate at 73% (HCC Search Overhaul, Gehlbach).
+Nothing useful comes back. Current search returns services, and only about 27% of queries are for content it can return (Q3 query analysis, Shakshober). A 2024 analysis put the zero-result rate at 73% (HCC Search Overhaul, Gehlbach).
 
-She has already lost the first minute, and she still does not know which hosts are exposed.
+He still does not have the upgrade rule, and the first minute is gone.
 
-### Beat 2: She cannot tell what the field is for
+### Beat 2: Help does not know what he asked
 
-The placeholder says "Search or Ask AI..." Priya does not know whether the next keystroke is a lookup or a chat. She does not want a chat window to take over the page. In research, one person said they hoped clicking search would not "open up like a whole chat box," and that a flyout would be enough (Connected Experience).
+He opens the help drawer. It is a general panel. It does not know he was looking for the RHEL 10 upgrade guide, and it does not know he has 42 RHEL 9 hosts. He scrolls for a document that may live in another site.
 
-She hesitates, deletes the query, and does not trust the field enough to try a full sentence.
+A participant described the same split: console search is "mostly for navigation purposes," and documentation sends them to a search engine like Google (Connected Experience).
 
-### Beat 3: She leaves search
+### Beat 3: Chat is a cold button, and it is slow
 
-She opens a web search engine for the CVE documentation. A participant described the same split: console search is "mostly for navigation purposes," and documentation sends them to a search engine like Google (Connected Experience).
+Ask Red Hat is available. Almost nobody uses it. Button clicks are under 1%, and Ask Red Hat adoption is under 5% (leadership update, November 2026). Sam does not press it. A chat with no guide and no host list is a detour, and a multi-agent answer through Unifi can take from 14 seconds to 90 seconds. Ninety seconds is the rest of his morning.
 
-In the last 90 days, 9,368 external users opened masthead search and 2,512 clicked a result within 60 seconds (26.8%, Amplitude). A 2026 analysis put abandonment at 74% (Gehlbach). Priya is in that majority. The services menu is now how she will hunt for inventory, one product at a time.
+He will not spend the standup window staring at a typing indicator.
 
-### Beat 4: She cannot see the estate at all
+### Beat 4: He leaves
 
-The hosts she is looking for are estate assets. Today's search does not index them. She also cannot tell, from an empty result, whether a host in another workspace is hidden on purpose. Research participants said that omitting a restricted asset makes an on-call engineer "confused and ask around" (Connected Experience). The feature that will ship, [CRCPLAN-448](https://redhat.atlassian.net/browse/CRCPLAN-448), chooses the other rule: if her role cannot view an item, search must not reveal that it exists.
+He opens a web search engine for the migration docs and the services menu for inventory. In the last 90 days, 9,368 external users opened masthead search and 2,512 clicked a result within 60 seconds (26.8%, Amplitude). A 2026 analysis put abandonment at 74% (Gehlbach). Those are different measures. Sam is in the group that does not finish in the console.
 
-She messages a teammate and opens Subscriptions by hand, because most service queries are subscription-related and that is the only neighborhood search understands. Standup starts without a host list.
+Standup starts without a count of hosts that fail the baseline.
 
 ## The Pivot
 
-Priya types the same shorthand, `rhel critical cve`, into the vision masthead. The field does not become a chat. A short dropdown hangs under it at once: the hosts her role can view, `pci-app-server-01` marked access required, one open support case, and one learning resource. The case opens on the console only once Support on Console has landed ([UIESTRAT-95](https://redhat.atlassian.net/browse/UIESTRAT-95)). The restricted host is already in that dropdown. Enter opens the full results page, which leads with an AI answer that cites the KB article, not a summary she has to take on faith.
+Sam types the same shorthand into the vision masthead. The dropdown returns immediately. The upgrade guide is in the list, with the pre-upgrade assistant and Image Builder. On the guide he can open it, view it in the help panel, or ask Lightspeed.
 
-## Tomorrow: Priya's New Experience
+He views it in the help panel. Search has found the document. He does not need a conversation to learn that the document exists.
 
-### Beat 1: The empty field stays light
+## Tomorrow: Sam's New Experience
 
-Priya focuses the masthead. A light overlay shows recent searches, a few shortcuts, and her pinned services. It does not open a chat. The placeholder no longer blurs lookup and conversation.
+### Beat 1: Search finds the guide
 
-She can start in under a second, which matches what research asked for: a flyout, not a full assistant (Connected Experience).
+The dropdown stays short. It is a list of places and documents, not an essay and not a chat. "Upgrading to RHEL 10 & Adopting Image Mode" is there, with View in Help Panel and Ask Lightspeed on the row.
 
-### Beat 2: Shorthand finds the estate, the case, and the doc
+This step does not wait on Unifi. A lookup has to come back in the time people already give a search result. The median click today is 10 seconds (Amplitude). Leadership is protecting that speed, and the zero-result metric, with caching. The first thing Sam sees is the guide.
 
-She types `rhel critical cve`. The dropdown stays short, about three items in each group, with a way to see the rest. No scrolling. No product-download dump. No full AI essay in the overlay.
+### Beat 2: Help holds the rule
 
-She sees the affected hosts her role allows, an existing support case, and a getting-started link. `pci-app-server-01` is in that same dropdown, immediately, marked access required, with the owner and Request access. Research participants said that hiding a restricted asset makes an on-call engineer "confused and ask around" (Connected Experience). [CRCPLAN-448](https://redhat.atlassian.net/browse/CRCPLAN-448) currently says the opposite: if her role cannot view an item, search must not reveal that it exists. This vision shows the host in the first results. That conflict with the feature is still open, and the prototype already shows this version.
+The help drawer opens on the guide: hardware baseline x86-64-v3, package mode versus Image Mode, and the crypto warning. A callout says Insights sees 42 systems, and 6 do not meet the CPU baseline. The button on that callout is Analyze Fleet Compatibility in Lightspeed.
 
-### Beat 3: The answer is on the results page, and she can check it
+He reads the rule before he asks anything. The panel is the source. A participant said they use a summary when the source is right there, so they do not have to open ten links (Connected Experience). Here the source is the panel itself.
 
-She presses Enter. `/search` opens with an AI answer at the top, from Ask Red Hat, and a control to turn AI answers off for this session. Her organization has left summaries on. If the org had disabled them, this block would not be here. The summary names the error, the hosts, and a direct link to the source article. A participant said they use that kind of summary so they "don't need to go to 10 links," especially for something basic, and only when the source is right there (Connected Experience).
+### Beat 3: Chat applies the rule, and the wait is visible
 
-She reads the summary and opens the cited article to confirm it matches the hosts. She leaves the summary on. The session control is there for when she wants the rows alone, and the block is absent if her organization has disabled summaries. The dropdown she just left never tried to be this page.
+He chooses the fleet check. Ask Lightspeed opens in the same drawer, with the context named: the RHEL 10 upgrade guide and 42 registered RHEL 9 hosts. The guide stays available. Chat says it is checking his systems against that guide.
 
-### Beat 4: The destination already knows what she asked
+This question is about his estate, so it goes through Unifi. That path takes from 14 seconds to 90 seconds, and another framework is not available (leadership update). He is waiting on purpose, with the rule still on screen, and the rest of the console still works. A common question, one of the 250 to 1,000 answers Omry's team is caching, would have returned on the fast path and would not have entered this wait.
 
-She opens a host she is allowed to see. The overview carries filter chips from the query, so she does not retype the CVE conditions. Request access for `pci-app-server-01` stays on the result she already saw, with the asset and owner filled in.
+The prototype compresses this moment so the flow can be walked. The vision does not. The production chat has to show the real wait.
+
+### Beat 4: The answer is tied to the guide
+
+The answer comes back. 36 hosts can take an in-place upgrade or an image-mode rebase. 6 hosts are pre-Haswell and fail x86-64-v3. He asks for a playbook that verifies those CPU flags. He reads the tasks, then opens the playbook in Automation Execution.
+
+Chat did the part only chat can do: it held his inventory against the guide. He reviews the action before anything runs. The guide is still the thing he would defend in the room.
 
 ## The Payoff
 
-At 8:57 Priya has the host list, the open case, and the cited article. She tells her teammate, "I didn't leave the masthead." The twenty minutes went to the incident, not to reconstructing which service owned the answer.
+At 8:57 Sam can name the rule, the six hosts, and the playbook. He tells his teammate, "I found the guide in search, I read it in help, and I only opened chat to check our hosts."
 
-That is the experience behind the GA targets: a zero-result rate at or below 30%, and abandonment at or below 25%.
+That is the support the three surfaces are for. Search is how the zero-result and abandonment numbers move: the first result is the document. Help is how he trusts it. Chat is how the under 1% button and the under 5% adoption can move: he opens it because the guide asked a question only his estate can answer, not because a button was in the masthead.
 
-Running a remediation from the result sits outside this vision. It is risky, and it is not planned by Summit.
-
-Search and help do different jobs. Search is how Priya finds a host, a case, a learning resource, or a cited answer and goes there. Help is guidance for the page she is already on. This journey is search. Help stays the drawer for the current page, so the two features answer different questions.
-
----
+The twenty minutes went to the migration, not to reconstructing which product owned the answer.
 
 ## Screen Breakdown
 
-| # | Screen | Route | Narrative Moment | Key Elements | User Action |
-|---|--------|-------|-----------------|--------------|-------------|
-| 1 | Masthead, empty | `/` with search focused | Tomorrow, beat 1 | Light overlay: recent, shortcuts, pinned services. No chat. Placeholder that does not say both "search" and "ask" at once. | Focus the field, scan, start typing |
-| 2 | Masthead, results | `/` with a query | Tomorrow, beat 2, and the pivot | Short dropdown. About three items per group, then a way to see all. Hosts her role can view, one support case, one learning link. `pci-app-server-01` appears immediately, marked access required, with the owner and Request access. No full AI summary in the dropdown. | Scan, choose a row, or press Enter |
-| 3 | Search results | `/search` | Tomorrow, beat 3 | AI answer from Ask Red Hat, with a direct KB citation. On/off for this session, and absent entirely if the org disabled summaries. Mixed results under it: hosts she can view, case, learning. | Read the summary and open the cited article |
-| 4 | Host overview | `/overview` with filter chips | Tomorrow, beat 4 | Filter chips carried from the query. Request access for the restricted host was already on the search result. | Open the host |
+| # | Screen | Where it lives | Narrative moment | Key elements | User action |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Masthead results | Home, search open, query "RHEL 10 migration image mode" | Pivot and tomorrow, beat 1 | Short dropdown. Upgrade guide, pre-upgrade assistant, Image Builder. View in Help Panel and Ask Lightspeed on the row. No Unifi wait in the list. | Open the guide in the help panel |
+| 2 | Help panel, guide | Help drawer, tab "Upgrading to RHEL 10 & Adopting Image Mode" | Tomorrow, beat 2 | x86-64-v3 baseline, package mode versus Image Mode, crypto warning. Callout: 42 systems, 6 below the baseline. Analyze Fleet Compatibility in Lightspeed. | Read the rule, then start the fleet check |
+| 3 | Chat, working | Same drawer, Ask Lightspeed tab | Tomorrow, beat 3 | Context: the guide plus 42 RHEL 9 hosts. A visible working state that names the fleet check. Guide still available. This is the 14 to 90 second Unifi path. | Wait, and keep reading the guide |
+| 4 | Chat, answer | Same drawer, Ask Lightspeed tab | Tomorrow, beat 4 | 36 hosts ready, 6 blocked as pre-Haswell. Actions: verification playbook, Image Builder template, CSV of incompatible hosts. | Choose the playbook |
+| 5 | Playbook to review | Chat, then Automation Execution | Tomorrow, beat 4 | Playbook tasks for the x86-64-v3 flags. Open in Automation Execution. Nothing runs until he takes it there. | Review, then open the playbook |
