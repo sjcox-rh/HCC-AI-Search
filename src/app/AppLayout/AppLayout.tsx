@@ -1251,7 +1251,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   const [recentSearches, setRecentSearches] = React.useState<Array<{ query: string; count: number }>>([]);
   const [searchPage, setSearchPage] = React.useState(1);
   const [searchPerPage, setSearchPerPage] = React.useState(10);
-  const [selectedSearchContentTypes] = React.useState<Set<string>>(new Set());
+  const [selectedSearchContentTypes, setSelectedSearchContentTypes] = React.useState<Set<string>>(new Set());
 
   // Load recent searches from localStorage on mount
   React.useEffect(() => {
