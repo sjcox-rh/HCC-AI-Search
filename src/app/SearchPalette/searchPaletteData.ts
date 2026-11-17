@@ -1923,6 +1923,19 @@ const grantedFirst = (items: PaletteAction[]): PaletteAction[] => [
   ...items.filter((item) => item.access === 'restricted'),
 ];
 
+/** Queries that should lead with the RHEL 10 upgrade guide in the Help panel. */
+export const isRhel10UpgradeQuery = (query: string): boolean => {
+  const q = query.trim().toLowerCase();
+  const isRhel10 =
+    q.includes('rhel 10') ||
+    q.includes('rhel10') ||
+    (q.includes('rhel') && q.includes('10')) ||
+    (q.includes('red hat enterprise linux') && q.includes('10'));
+  // "upgrading" does not contain the substring "upgrade".
+  const mentionsUpgrade = q.includes('upgrad');
+  return isRhel10 && mentionsUpgrade;
+};
+
 export const resolveQuery = (query: string): SearchResolution => {
   const q = query.trim().toLowerCase();
 
@@ -2007,9 +2020,12 @@ export const resolveQuery = (query: string): SearchResolution => {
     (q.includes('rhel') && q.includes('10')) ||
     (q.includes('red hat enterprise linux') && q.includes('10'));
 
+  const isUpgradingToRhel10 = isRhel10UpgradeQuery(q);
+
   const isRhel10Migration =
     isRhel10 &&
-    (q.includes('migration') ||
+    (isUpgradingToRhel10 ||
+      q.includes('migration') ||
       q.includes('image mode') ||
       q.includes('bootc') ||
       q.includes('upgrade guide') ||
@@ -2404,6 +2420,19 @@ export const resolveQuery = (query: string): SearchResolution => {
         },
       ],
     };
+
+    if (isUpgradingToRhel10) {
+      const upgradeDoc = intent.docs.find((doc) =>
+        doc.title.toLowerCase().startsWith('upgrading to rhel 10'),
+      );
+      if (upgradeDoc) {
+        intent = {
+          ...intent,
+          actions: [upgradeDoc, ...intent.actions],
+          docs: intent.docs.filter((doc) => doc.id !== upgradeDoc.id),
+        };
+      }
+    }
   }
 
   if (!intent.answer && isRhel10) {

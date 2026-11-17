@@ -11,6 +11,7 @@ import {
   ListItem,
   Title,
 } from '@patternfly/react-core';
+import { MessageBar } from '@patternfly/chatbot';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { RHEL10_MIGRATION_DOC_HEADING } from './demoFlowData';
 import { useDemoFlowOptional } from './DemoFlowContext';
@@ -19,8 +20,13 @@ import './DemoFlow.css';
 export const Rhel10MigrationHelpContent: React.FunctionComponent = () => {
   const demo = useDemoFlowOptional();
 
+  const openFleetChat = (prompt?: string) => {
+    demo?.analyzeFleetInLightspeed(prompt);
+  };
+
   return (
     <div className="demo-flow-help">
+      <div className="demo-flow-help__body">
       <Content>
         <Title headingLevel="h2" size="lg">
           {RHEL10_MIGRATION_DOC_HEADING}
@@ -77,26 +83,35 @@ export const Rhel10MigrationHelpContent: React.FunctionComponent = () => {
           </p>
         </CardBody>
       </Card>
+      </div>
 
-      <Alert
-        variant="warning"
-        isInline
-        title="Want to check your fleet?"
-        customIcon={<ExclamationTriangleIcon />}
-        className="demo-flow-help__fleet"
-      >
-        <p>
-          Red Hat Insights detected <strong>42 systems</strong> in your inventory.{' '}
-          <strong>6 systems</strong> do not meet the x86-64-v3 CPU baseline.
-        </p>
-        <Button
-          variant="primary"
-          className="demo-flow-help__fleet-btn"
-          onClick={() => demo?.analyzeFleetInLightspeed()}
+      <div className="demo-flow-help__composer" role="region" aria-label="Ask about fleet compatibility">
+        <Alert
+          variant="warning"
+          isInline
+          title="Want to check your fleet?"
+          customIcon={<ExclamationTriangleIcon />}
+          className="demo-flow-help__fleet"
+          actionLinks={
+            <Button variant="secondary" onClick={() => openFleetChat()}>
+              Analyze fleet compatibility
+            </Button>
+          }
         >
-          Analyze Fleet Compatibility in Lightspeed
-        </Button>
-      </Alert>
+          <p>
+            Red Hat Insights detected <strong>42 systems</strong> in your inventory.{' '}
+            <strong>6 systems</strong> do not meet the x86-64-v3 CPU baseline.
+          </p>
+        </Alert>
+        <MessageBar
+          onSendMessage={(message) => openFleetChat(String(message))}
+          placeholder="Ask about these systems..."
+          alwayShowSendButton
+          hasAttachButton={false}
+          hasMicrophoneButton={false}
+          aria-label="Ask about fleet compatibility"
+        />
+      </div>
     </div>
   );
 };

@@ -122,7 +122,6 @@ import {
   ProjectDiagramIcon,
   QuestionCircleIcon,
   RocketIcon,
-  SearchIcon,
   ServerIcon,
   ShieldAltIcon,
   SignOutAltIcon,
@@ -352,7 +351,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   ];
 
   const [tabs, setTabs] = React.useState<TabContent[]>([
-    { id: 'get-started', title: 'Find help', originalTitle: 'Find help', type: 'overview', activeSubTab: 0, closable: false, hasUserInteracted: false }
+    { id: 'get-started', title: 'Find help', originalTitle: 'Find help', type: 'overview', activeSubTab: 1, closable: false, hasUserInteracted: false }
   ]);
   const [openedHelpDoc, setOpenedHelpDoc] = React.useState<string | null>(null);
   
@@ -362,7 +361,6 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
     tabsRef.current = tabs;
   }, [tabs]);
 
-  const [searchValue, setSearchValue] = React.useState('');
   const [overflowCount, setOverflowCount] = React.useState(0);
   const [overflowTooltips, setOverflowTooltips] = React.useState<Array<{ selector: string; text: string }>>([]);
   const [tabTooltips, setTabTooltips] = React.useState<Array<{ tabId: string; text: string }>>([]);
@@ -1007,7 +1005,6 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   
   // Notification drawer state
   const [isNotificationDrawerOpen, setIsNotificationDrawerOpen] = React.useState(false);
-  const [helpPanelWidth, setHelpPanelWidth] = React.useState(580); // Default size in pixels
   const helpPanelRef = React.useRef<HTMLDivElement>(null);
   const [isNotificationActionsOpen, setIsNotificationActionsOpen] = React.useState(false);
 
@@ -1254,8 +1251,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   const [recentSearches, setRecentSearches] = React.useState<Array<{ query: string; count: number }>>([]);
   const [searchPage, setSearchPage] = React.useState(1);
   const [searchPerPage, setSearchPerPage] = React.useState(10);
-  const [isSearchContentTypeOpen, setIsSearchContentTypeOpen] = React.useState(false);
-  const [selectedSearchContentTypes, setSelectedSearchContentTypes] = React.useState<Set<string>>(new Set());
+  const [selectedSearchContentTypes] = React.useState<Set<string>>(new Set());
 
   // Load recent searches from localStorage on mount
   React.useEffect(() => {
@@ -1629,62 +1625,6 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
     }
   }, [isLogoDropdownOpen]);
 
-  // ResizeObserver to track help panel width changes
-  React.useEffect(() => {
-    if (!isDrawerExpanded) {
-      return;
-    }
-
-    // Find the panel element by looking for the drawer panel content
-    const findPanelElement = () => {
-      const selectors = [
-        '.pf-v6-c-drawer__panel-content',
-        '.pf-v6-c-drawer__panel',
-        '[data-ouia-component-type="DrawerPanelContent"]',
-        '.pf-c-drawer__panel-content',
-        '.pf-c-drawer__panel'
-      ];
-      
-      for (const selector of selectors) {
-        const element = document.querySelector(selector);
-        if (element) {
-          return element;
-        }
-      }
-      
-      return null;
-    };
-
-    // Wait a bit for the DOM to be ready
-    const timeoutId = setTimeout(() => {
-      const panelElement = findPanelElement();
-      
-      if (!panelElement) {
-        return;
-      }
-
-      const resizeObserver = new ResizeObserver((entries) => {
-        for (const entry of entries) {
-          const newWidth = entry.contentRect.width;
-          setHelpPanelWidth(newWidth);
-        }
-      });
-
-      resizeObserver.observe(panelElement);
-
-      // Store the observer for cleanup
-      (window as any).helpPanelResizeObserver = resizeObserver;
-    }, 100);
-
-    return () => {
-      clearTimeout(timeoutId);
-      if ((window as any).helpPanelResizeObserver) {
-        (window as any).helpPanelResizeObserver.disconnect();
-        delete (window as any).helpPanelResizeObserver;
-      }
-    };
-  }, [isDrawerExpanded]);
-
   // Debug effect to log selectedMenuItem changes
   React.useEffect(() => {
     console.log('selectedMenuItem changed to:', selectedMenuItem);
@@ -1822,7 +1762,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
       return { subTab: 5, docTitle: null as string | null, feedbackView: 'general' as const };
     }
     if (title === 'Dashboard widgets') {
-      return { subTab: 0, docTitle: null as string | null };
+      return { subTab: 1, docTitle: null as string | null };
     }
     if (
       title === RHEL10_MIGRATION_DOC_TITLE ||
@@ -1848,7 +1788,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
       
       // Update title with sub-tab name on first interaction if no custom title set
       if (newTabs[tabIndex].type === 'overview' || newTabs[tabIndex].type === 'custom') {
-        const activeSubTab = newTabs[tabIndex].activeSubTab || 0;
+        const activeSubTab = newTabs[tabIndex].activeSubTab || 1;
         // Use "Feedback" for subTabIndex 5 instead of "Ask Red Hat"
         const newTitle = activeSubTab === 5 ? 'Feedback' : subTabNames[activeSubTab];
         newTabs[tabIndex].title = newTitle;
@@ -1925,45 +1865,6 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
       setIsNotificationDrawerOpen(false);
     }
   };
-
-  const onSearchChange = (_event: React.FormEvent<HTMLInputElement>, value: string) => {
-    setSearchValue(value);
-  };
-
-  const onSearchClear = () => {
-    setSearchValue('');
-  };
-
-  const createSearchHandlers = (currentTabIndex: number) => {
-    const onSearchSubmit = (value: string) => {
-      console.log('onSearchSubmit called with:', value, 'for tab index:', currentTabIndex);
-      if (value.trim()) {
-        const newTabs = [...tabs];
-        
-        console.log('Before update - tabs:', newTabs.map(t => ({ id: t.id, title: t.title })));
-        
-        // Update the specific tab with the search query
-        newTabs[currentTabIndex].searchQuery = value.trim();
-        newTabs[currentTabIndex].title = value.trim();
-        newTabs[currentTabIndex].hasUserInteracted = true;
-        
-        console.log('After update - tabs:', newTabs.map(t => ({ id: t.id, title: t.title })));
-        
-        setTabs(newTabs);
-      }
-    };
-
-    const handleSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-      console.log('Key pressed:', event.key, 'Search value:', searchValue);
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        onSearchSubmit(searchValue);
-      }
-    };
-
-    return { onSearchSubmit, handleSearchKeyDown };
-  };
-
 
   const onUserDropdownToggle = () => {
     setIsUserDropdownOpen(!isUserDropdownOpen);
@@ -2078,16 +1979,11 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   };
 
   const renderSubTabs = (tabIndex: number, tab: TabContent, ariaLabel: string) => {
-    const { onSearchSubmit, handleSearchKeyDown } = createSearchHandlers(tabIndex);
-    
     return (
     <div className="help-panel-body">
       <style>{`
         .help-panel-tabs-wrap > .pf-v6-c-tabs > .pf-v6-c-tabs__list {
           width: 100%;
-        }
-        .help-panel-tabs-wrap > .pf-v6-c-tabs > .pf-v6-c-tabs__list > .pf-v6-c-tabs__item:last-child {
-          margin-inline-start: auto;
         }
         .help-panel-body [data-tab-id="lightspeed-chat"] {
           height: 100%;
@@ -2099,575 +1995,23 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
       <div className="help-panel-tabs-wrap">
     <Tabs
       isSubtab
-      activeKey={tab.activeSubTab || 0}
+      activeKey={tab.activeSubTab || 1}
       onSelect={(event, subTabIndex) => handleSubTabClick(tabIndex, subTabIndex as number)}
       aria-label={ariaLabel}
     >
-      <Tab 
-        eventKey={0} 
-        title={<SearchIcon aria-label="Search" />}
-        aria-label="Search sub tab"
+      <Tab
+        eventKey={HELP_CHAT_TAB}
+        title={
+          <Tooltip content="Ask Lightspeed">
+            <span className="help-panel-chat-tab-title">
+              <CommentsIcon style={{ width: '16px', height: '16px' }} />
+            </span>
+          </Tooltip>
+        }
+        aria-label="Ask Lightspeed"
       >
-        <style>{`
-          .learn-menu .pf-v6-c-menu {
-            box-shadow: none !important;
-            border: none !important;
-            width: 100% !important;
-          }
-          .learn-menu .pf-v6-c-menu__list {
-            padding: 0 !important;
-          }
-          .learn-menu .pf-v6-c-menu__list-item {
-            width: 100% !important;
-          }
-          .learn-menu .pf-v6-c-menu__item-main {
-            display: flex !important;
-            align-items: flex-start !important;
-            gap: 12px !important;
-            padding-right: 0 !important;
-          }
-          .learn-menu .pf-v6-c-menu__item-text {
-            padding-right: 0 !important;
-          }
-          .learn-menu .menu-item-content {
-            display: flex;
-            flex-direction: column;
-            flex: 1;
-            gap: 4px;
-            min-width: 0;
-            width: 100%;
-          }
-          .learn-menu .menu-item-title-row {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            min-width: 0;
-          }
-          .learn-menu .menu-item-title-row button {
-            padding: 4px !important;
-          }
-          .learn-menu .menu-item-breadcrumb-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 16px;
-          }
-          .learn-menu .menu-item-title {
-            color: var(--pf-v6-global--link--Color, #0066cc);
-            cursor: pointer;
-            text-decoration: none;
-            flex: 1;
-            min-width: 0;
-            word-wrap: break-word;
-            word-break: break-word;
-          }
-          .learn-menu .menu-item-title:hover {
-            color: var(--pf-v6-global--link--Color--hover, #004080);
-            text-decoration: underline;
-          }
-          .learn-menu .menu-item-label {
-            pointer-events: none;
-          }
-          /* Hover effect for overflow label */
-          .learn-menu .menu-item-label.overflow-label:hover {
-            filter: brightness(0.85);
-            transition: filter 0.2s ease;
-          }
-          /* Remove hover background on menu items - multiple selectors for specificity */
-          .learn-menu .pf-v6-c-menu__list-item:hover,
-          .learn-menu .pf-v6-c-menu__list-item:hover .pf-v6-c-menu__item,
-          .learn-menu .pf-v6-c-menu__item:hover,
-          .learn-menu .pf-v6-c-menu__item-main:hover,
-          .learn-menu .pf-v6-c-menu__list-item:hover .pf-v6-c-menu__item-main {
-            background-color: transparent !important;
-          }
-          /* Override PatternFly CSS variables for hover */
-          .learn-menu .pf-v6-c-menu__list-item {
-            --pf-v6-c-menu__list-item--hover--BackgroundColor: transparent !important;
-          }
-          .learn-menu .pf-v6-c-menu__item {
-            --pf-v6-c-menu__item--hover--BackgroundColor: transparent !important;
-          }
-          /* Make the menu item itself non-clickable */
-          .learn-menu .pf-v6-c-menu__item {
-            pointer-events: none !important;
-          }
-          /* Re-enable pointer events for specific clickable elements */
-          .learn-menu .pf-v6-c-menu__item button,
-          .learn-menu .pf-v6-c-menu__item .menu-item-title {
-            pointer-events: auto !important;
-          }
-          /* Bookmark icon colors */
-          .learn-menu .bookmark-icon {
-            color: var(--pf-t--global--icon--color--disabled, #6a6e73);
-            transition: color 0.2s ease;
-          }
-          .learn-menu .bookmark-icon.bookmarked {
-            color: var(--pf-t--global--color--brand--default, #0066cc);
-          }
-          /* Hide pagination options menu toggle */
-          .learn-menu .pf-v6-c-pagination .pf-v6-c-menu-toggle.pf-m-plain.pf-m-text {
-            display: none !important;
-          }
-          /* Ensure menu items can wrap */
-          .learn-menu .pf-v6-c-menu__item {
-            width: 100% !important;
-            max-width: 100% !important;
-          }
-          .learn-menu .pf-v6-c-menu__item-text {
-            width: 100% !important;
-            max-width: 100% !important;
-          }
-          /* Fix dropdown content type menu styling */
-          .pf-v6-c-dropdown .pf-v6-c-menu {
-            box-shadow: none !important;
-            border: none !important;
-            --pf-v6-c-menu--BoxShadow: none !important;
-          }
-          .pf-v6-c-dropdown .pf-v6-c-menu__list {
-            padding: 0 !important;
-          }
-          .pf-v6-c-dropdown .pf-v6-c-menu__content {
-            box-shadow: none !important;
-            --pf-v6-c-menu__content--BoxShadow: none !important;
-          }
-          /* Remove shadow from the dropdown popper/panel itself */
-          .pf-v6-c-menu-toggle + .pf-v6-c-menu {
-            box-shadow: var(--pf-v6-global--BoxShadow--md) !important;
-          }
-        `}</style>
-        <div className="learn-menu">
-          <div style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ flex: 1 }}>
-              <SearchInput
-                placeholder="Search documentation, APIs, and resources..."
-                value={searchQuery}
-                onChange={(_event, value) => {
-                  setSearchQuery(value);
-                  // Update the active tab's title with the search query
-                  const newTabs = [...tabs];
-                  const currentTabIndex = tabs.findIndex(tab => tab.id === activeTabKey);
-                  if (currentTabIndex !== -1) {
-                    if (value.trim()) {
-                      newTabs[currentTabIndex].title = value.trim();
-                      newTabs[currentTabIndex].searchQuery = value.trim();
-                      newTabs[currentTabIndex].hasUserInteracted = true;
-                    } else {
-                      // Reset to original title when search becomes empty
-                      newTabs[currentTabIndex].title = newTabs[currentTabIndex].originalTitle;
-                      newTabs[currentTabIndex].searchQuery = '';
-                    }
-                    setTabs(newTabs);
-                  }
-                }}
-                onClear={() => {
-                  setSearchQuery('');
-                  // Reset the tab title to original when clearing search
-                  const newTabs = [...tabs];
-                  const currentTabIndex = tabs.findIndex(tab => tab.id === activeTabKey);
-                  if (currentTabIndex !== -1) {
-                    newTabs[currentTabIndex].title = newTabs[currentTabIndex].originalTitle;
-                    newTabs[currentTabIndex].searchQuery = '';
-                    setTabs(newTabs);
-                  }
-                }}
-                aria-label="Search help resources"
-              />
-            </div>
-            {searchQuery.trim() && (
-              <Dropdown
-                isOpen={isSearchContentTypeOpen}
-                onOpenChange={(isOpen: boolean) => setIsSearchContentTypeOpen(isOpen)}
-                popperProps={{
-                  position: 'right'
-                }}
-                toggle={(toggleRef: React.Ref<any>) => (
-                  <MenuToggle
-                    ref={toggleRef}
-                    onClick={() => setIsSearchContentTypeOpen(!isSearchContentTypeOpen)}
-                    isExpanded={isSearchContentTypeOpen}
-                    badge={selectedSearchContentTypes.size > 0 ? <Badge isRead>{selectedSearchContentTypes.size}</Badge> : undefined}
-                  >
-                    Content type
-                  </MenuToggle>
-                )}
-              >
-                <Menu>
-                  <MenuList>
-                    <MenuItem itemId="services">
-                      <Checkbox
-                        id="search-content-type-services"
-                        label="Services"
-                        isChecked={selectedSearchContentTypes.has('services')}
-                        onChange={() => toggleSearchContentType('services')}
-                      />
-                    </MenuItem>
-                    <Divider component="li" />
-                    <MenuGroup label="Learning resources">
-                      <MenuItem itemId="documentation">
-                        <Checkbox
-                          id="search-content-type-documentation"
-                          label="Documentation"
-                          isChecked={selectedSearchContentTypes.has('documentation')}
-                          onChange={() => toggleSearchContentType('documentation')}
-                        />
-                      </MenuItem>
-                      <MenuItem itemId="quick-starts">
-                        <Checkbox
-                          id="search-content-type-quick-starts"
-                          label="Quick starts"
-                          isChecked={selectedSearchContentTypes.has('quick-starts')}
-                          onChange={() => toggleSearchContentType('quick-starts')}
-                        />
-                      </MenuItem>
-                      <MenuItem itemId="learning-paths">
-                        <Checkbox
-                          id="search-content-type-learning-paths"
-                          label="Learning paths"
-                          isChecked={selectedSearchContentTypes.has('learning-paths')}
-                          onChange={() => toggleSearchContentType('learning-paths')}
-                        />
-                      </MenuItem>
-                      <MenuItem itemId="other">
-                        <Checkbox
-                          id="search-content-type-other"
-                          label="Other"
-                          isChecked={selectedSearchContentTypes.has('other')}
-                          onChange={() => toggleSearchContentType('other')}
-                        />
-                      </MenuItem>
-                    </MenuGroup>
-                    <Divider component="li" />
-                    <MenuItem itemId="knowledgebase">
-                      <Checkbox
-                        id="search-content-type-knowledgebase"
-                        label="Knowledgebase articles"
-                        isChecked={selectedSearchContentTypes.has('knowledgebase')}
-                        onChange={() => toggleSearchContentType('knowledgebase')}
-                      />
-                    </MenuItem>
-                    <MenuItem itemId="api-documentation">
-                      <Checkbox
-                        id="search-content-type-api-documentation"
-                        label="API documentation"
-                        isChecked={selectedSearchContentTypes.has('api-documentation')}
-                        onChange={() => toggleSearchContentType('api-documentation')}
-                      />
-                    </MenuItem>
-                    <MenuItem itemId="support-cases">
-                      <Checkbox
-                        id="search-content-type-support-cases"
-                        label="My open support cases"
-                        isChecked={selectedSearchContentTypes.has('support-cases')}
-                        onChange={() => toggleSearchContentType('support-cases')}
-                      />
-                    </MenuItem>
-                  </MenuList>
-                </Menu>
-              </Dropdown>
-            )}
-          </div>
-          {!searchQuery.trim() && (
-            <div style={{ padding: '0 16px 16px 16px', fontSize: '14px', lineHeight: '1.5', color: 'var(--pf-v6-global--Color--200)' }}>
-              Find documentation, quick starts, API documentation, knowledgebase articles, and open support tickets.
-            </div>
-          )}
-          
-          {searchQuery.trim() && selectedSearchContentTypes.size > 0 && (
-            <div style={{ padding: '0 16px 16px 16px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <LabelGroup numLabels={4}>
-                {Array.from(selectedSearchContentTypes).map(contentType => (
-                  <Label
-                    key={contentType}
-                    onClose={() => toggleSearchContentType(contentType)}
-                  >
-                    {getSearchContentTypeDisplayName(contentType)}
-                  </Label>
-                ))}
-              </LabelGroup>
-              <Button variant="link" onClick={clearAllSearchContentTypeFilters}>
-                Clear all filters
-              </Button>
-            </div>
-          )}
-
-          {searchQuery.trim() ? (
-            // Show search results when user is typing
-            <>
-              <div style={{ padding: '16px 16px 8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 'var(--pf-t--global--font--size--body--lg, 18px)', fontWeight: '400' }}>
-                  Search results ({totalSearchResults})
-                </span>
-                <Pagination
-                  itemCount={totalSearchResults}
-                  perPage={searchPerPage}
-                  page={searchPage}
-                  onSetPage={(_event, pageNumber) => setSearchPage(pageNumber)}
-                  onPerPageSelect={(_event, perPage) => {
-                    setSearchPerPage(perPage);
-                    setSearchPage(1);
-                  }}
-                  variant="top"
-                  isCompact
-                  toggleTemplate={() => <></>}
-                />
-              </div>
-              {visibleSearchResults.length > 0 ? (
-                <Menu>
-                  <MenuList>
-                    {visibleSearchResults.map((result, idx) => (
-                      <React.Fragment key={result.id}>
-                        {idx > 0 && <Divider component="li" />}
-                        <MenuItem itemId={result.id}>
-                          <div className="menu-item-content">
-                            <div className="menu-item-title-row">
-                              {result.breadcrumb1 === 'Learning resources' && (
-                                <Button
-                                  variant="plain"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    toggleBookmark(result.id);
-                                  }}
-                                  aria-label="Bookmark"
-                                  style={{ minWidth: 'auto' }}
-                                >
-                                  <BookmarkIcon className={`bookmark-icon ${bookmarkedItems.has(result.id) ? 'bookmarked' : ''}`} />
-                                </Button>
-                              )}
-                              {result.title === 'Configuring console event notifications in Slack' ? (
-                                <div 
-                                  className="menu-item-title"
-                                  onClick={() => openHelpPanelWithTab('Configuring console event notifications in Slack')}
-                                  style={{ display: 'inline', flex: 1, cursor: 'pointer' }}
-                                >
-                                  {result.title}
-                                </div>
-                              ) : (
-                                <div className="menu-item-title">{result.title}</div>
-                              )}
-                            </div>
-                            <div className="menu-item-breadcrumb-row">
-                              <Breadcrumb>
-                                <BreadcrumbItem>
-                                  {getBreadcrumbIcon(result.breadcrumb1)}
-                                  {result.breadcrumb1}
-                                </BreadcrumbItem>
-                                {result.breadcrumb2 && <BreadcrumbItem>{result.breadcrumb2}</BreadcrumbItem>}
-                              </Breadcrumb>
-                              <div style={{ display: 'flex', gap: '8px', flexWrap: 'nowrap', alignItems: 'center' }}>
-                                {/* Show first 2 labels, then "(X) more" if needed */}
-                                {result.labels.slice(0, 2).map((label, labelIdx) => (
-                                  <Label key={labelIdx} className="menu-item-label" color="grey" isCompact>
-                                    {label}
-                                  </Label>
-                                ))}
-                                {result.labels.length > 2 && (
-                                  <span style={{ display: 'inline-block' }}>
-                                    <Tooltip
-                                      content={result.labels.slice(2).join(', ')}
-                                    >
-                                      <Label 
-                                        className="menu-item-label overflow-label" 
-                                        color="grey" 
-                                        isCompact 
-                                        style={{ pointerEvents: 'auto', cursor: 'pointer' }}
-                                      >
-                                        ({result.labels.length - 2}) more
-                                      </Label>
-                                    </Tooltip>
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </MenuItem>
-                      </React.Fragment>
-                    ))}
-                  </MenuList>
-                </Menu>
-              ) : (
-                <div style={{ 
-                  padding: '32px 16px', 
-                  textAlign: 'center', 
-                  color: 'var(--pf-v6-global--Color--200)',
-                  fontSize: '14px'
-                }}>
-                  No results found for "{searchQuery}"
-                </div>
-              )}
-              <div style={{ padding: '16px', borderTop: '1px solid var(--pf-v6-global--BorderColor--100)' }}>
-                <Pagination
-                  itemCount={totalSearchResults}
-                  perPage={searchPerPage}
-                  page={searchPage}
-                  onSetPage={(_event, pageNumber) => setSearchPage(pageNumber)}
-                  onPerPageSelect={(_event, perPage) => {
-                    setSearchPerPage(perPage);
-                    setSearchPage(1);
-                  }}
-                  variant="bottom"
-                />
-              </div>
-            </>
-          ) : (
-            // Show recent searches and recommended content when not searching
-            <>
-              <div style={{ padding: '16px 16px 8px 16px' }}>
-                <span style={{ fontSize: 'var(--pf-t--global--font--size--body--lg, 18px)', fontWeight: '400' }}>Recent search queries</span>
-              </div>
-              {recentSearches.length === 0 ? (
-                <div style={{ 
-                  padding: '32px 16px', 
-                  textAlign: 'center', 
-                  color: 'var(--pf-v6-global--Color--200)',
-                  fontSize: '14px'
-                }}>
-                  No recent queries
-                </div>
-              ) : (
-                <Menu>
-                  <MenuList>
-                    {recentSearches.map((search, idx) => (
-                      <React.Fragment key={`recent-search-${idx}`}>
-                        {idx > 0 && <Divider component="li" />}
-                        <MenuItem 
-                          itemId={`recent-search-${idx}`}
-                        >
-                          <div className="menu-item-title" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            {search.query}
-                            <span style={{ color: 'var(--pf-v6-global--Color--200)', fontSize: '14px' }}>({search.count})</span>
-                          </div>
-                        </MenuItem>
-                      </React.Fragment>
-                    ))}
-                  </MenuList>
-                </Menu>
-              )}
-              <div style={{ padding: '16px 16px 8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                  <span style={{ fontSize: 'var(--pf-t--global--font--size--body--lg, 18px)', fontWeight: '400' }}>Recommended content</span>
-                  {currentBundle ? (
-                    <ToggleGroup aria-label="Scope filter" isCompact>
-                      <ToggleGroupItem
-                        text={currentBundle}
-                        buttonId="scope-bundle"
-                        isSelected={scopeFilter === 'bundle'}
-                        onChange={() => setScopeFilter('bundle')}
-                      />
-                      <ToggleGroupItem
-                        text="All"
-                        buttonId="scope-all"
-                        isSelected={scopeFilter === 'all'}
-                        onChange={() => setScopeFilter('all')}
-                      />
-                    </ToggleGroup>
-                  ) : (
-                    <ToggleGroup aria-label="Scope filter" isCompact>
-                      <ToggleGroupItem
-                        text="All"
-                        buttonId="scope-all"
-                        isSelected={true}
-                        onChange={() => {}}
-                      />
-                    </ToggleGroup>
-                  )}
-                </div>
-              </div>
-              <Menu>
-            <MenuList>
-              {(() => {
-                // Select content based on scope filter
-                const content = scopeFilter === 'all' || !currentBundle
-                  ? recommendedContentAll
-                  : recommendedContentSettings;
-                
-                // Sort alphabetically by title
-                const sortedContent = [...content].sort((a, b) => a.title.localeCompare(b.title));
-                
-                return sortedContent.map((item, idx) => (
-                  <React.Fragment key={item.id}>
-                    {idx > 0 && <Divider component="li" />}
-                    <MenuItem itemId={item.id}>
-                      <div className="menu-item-content">
-                        <div className="menu-item-title-row">
-                          {item.breadcrumb1 === 'Learning resources' && (
-                            <Button
-                              variant="plain"
-                              aria-label={bookmarkedItems.has(item.id) ? 'Remove bookmark' : 'Add bookmark'}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleBookmark(item.id);
-                              }}
-                              style={{ padding: '4px', marginLeft: '-4px' }}
-                            >
-                              <BookmarkIcon className={`bookmark-icon ${bookmarkedItems.has(item.id) ? 'bookmarked' : ''}`} />
-                            </Button>
-                          )}
-                          {item.title === 'Configuring console event notifications in Slack' ? (
-                            <div 
-                              className="menu-item-title"
-                              onClick={() => openHelpPanelWithTab('Configuring console event notifications in Slack')}
-                              style={{ display: 'inline', flex: 1, cursor: 'pointer' }}
-                            >
-                              {item.title}
-                            </div>
-                          ) : (
-                            <a 
-                              href={item.url} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="menu-item-title"
-                              style={{ display: 'inline', flex: 1 }}
-                            >
-                              {item.title}
-                              <ExternalLinkAltIcon style={{ width: '12px', height: '12px', verticalAlign: 'middle', marginLeft: '4px' }} />
-                            </a>
-                          )}
-                        </div>
-                        <div className="menu-item-breadcrumb-row">
-                          <Breadcrumb>
-                            <BreadcrumbItem>
-                              {getBreadcrumbIcon(item.breadcrumb1)}
-                              {item.breadcrumb1}
-                            </BreadcrumbItem>
-                            {item.breadcrumb2 && <BreadcrumbItem>{item.breadcrumb2}</BreadcrumbItem>}
-                          </Breadcrumb>
-                          {item.labels.length > 0 && (
-                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'nowrap', alignItems: 'center' }}>
-                              {/* Show first 2 labels, then "(X) more" if needed */}
-                              {item.labels.slice(0, 2).map((label, labelIdx) => (
-                                <Label key={labelIdx} className="menu-item-label" color="grey" isCompact>
-                                  {label}
-                                </Label>
-                              ))}
-                              {item.labels.length > 2 && (
-                                <span style={{ display: 'inline-block' }}>
-                                  <Tooltip
-                                    content={item.labels.slice(2).join(', ')}
-                                  >
-                                    <Label 
-                                      className="menu-item-label overflow-label" 
-                                      color="grey" 
-                                      isCompact 
-                                      style={{ pointerEvents: 'auto', cursor: 'pointer' }}
-                                    >
-                                      ({item.labels.length - 2}) more
-                                    </Label>
-                                  </Tooltip>
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </MenuItem>
-                  </React.Fragment>
-                ));
-              })()}
-            </MenuList>
-          </Menu>
-            </>
-          )}
+        <div data-tab-id="lightspeed-chat">
+          <LightspeedChatPanel />
         </div>
       </Tab>
       <Tab 
@@ -3866,21 +3210,6 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
             </div>
           );
         })()}
-      </Tab>
-      <Tab
-        eventKey={HELP_CHAT_TAB}
-        title={
-          <Tooltip content="Ask Lightspeed">
-            <span className="help-panel-chat-tab-title">
-              <CommentsIcon style={{ width: '16px', height: '16px' }} />
-            </span>
-          </Tooltip>
-        }
-        aria-label="Ask Lightspeed"
-      >
-        <div data-tab-id="lightspeed-chat">
-          <LightspeedChatPanel />
-        </div>
       </Tab>
     </Tabs>
       </div>
@@ -6437,56 +5766,6 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
         </div>
       )}
       
-      {/* Floating Comments Button */}
-      <div
-        style={{
-          position: 'fixed',
-          bottom: '32px',
-          right: isDrawerExpanded ? `${helpPanelWidth + 32}px` : '32px', // 32px from panel edge when open, 32px from viewport edge when closed
-          width: '56px',
-          height: '56px',
-          zIndex: 1000,
-          transition: 'right 0.2s ease-in-out',
-        }}
-      >
-        <Button
-          variant="plain"
-          onClick={() => {
-            openLightspeedView();
-          }}
-          style={{
-            width: '56px',
-            height: '56px',
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, #F56E6E 0%, #5E40BE 100%)',
-            border: 'none',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-            transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 0
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'scale(1.05)';
-            e.currentTarget.style.boxShadow = '0 6px 16px rgba(0, 0, 0, 0.2)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'scale(1)';
-            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
-          }}
-          aria-label="Open comments and feedback"
-        >
-          <CommentsIcon 
-            style={{ 
-              width: '24px', 
-              height: '24px',
-              color: 'white'
-            }} 
-          />
-        </Button>
-      </div>
-
       {/* PatternFly Tooltips for truncated overflow menu items */}
       {overflowTooltips.map((tooltip, index) => (
         <Tooltip

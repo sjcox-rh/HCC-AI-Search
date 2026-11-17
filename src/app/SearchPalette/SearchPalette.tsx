@@ -26,6 +26,7 @@ import {
   DownloadIcon,
   BookOpenIcon,
   ClusterIcon,
+  CommentsIcon,
   FolderOpenIcon,
   HddIcon,
   HeadsetIcon,
@@ -695,20 +696,6 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
         </span>
         {showTriage && (
           <span className="ai-search-palette__item-actions">
-            {item.helpPanelDoc && onViewInHelpPanel && (
-              <Tooltip content="View in Help Panel">
-                <Button
-                  variant="plain"
-                  aria-label={`View ${item.title} in Help Panel`}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onViewInHelpPanel(item.helpPanelDoc as string, item);
-                  }}
-                >
-                  <BookOpenIcon />
-                </Button>
-              </Tooltip>
-            )}
             {item.askLightspeed && onAskLightspeed && (
               <Tooltip content="Ask Lightspeed">
                 <Button
@@ -719,7 +706,7 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
                     onAskLightspeed(item);
                   }}
                 >
-                  <img src={SparkleIcon} alt="" width={16} height={16} />
+                  <CommentsIcon />
                 </Button>
               </Tooltip>
             )}

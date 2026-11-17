@@ -15,11 +15,12 @@ export interface DemoFlowContextValue {
   lightspeedPhase: LightspeedPhase;
   contextPill: string | null;
   selectedChip: string | null;
+  fleetQuestion: string | null;
   setStep: (step: DemoStep) => void;
   nextStep: () => void;
   reset: () => void;
   openMigrationDoc: () => void;
-  analyzeFleetInLightspeed: () => void;
+  analyzeFleetInLightspeed: (prompt?: string) => void;
   askLightspeedFromSearch: (sourceTitle?: string) => void;
   selectActionChip: (chipId: string) => void;
   registerControllers: (controllers: DemoFlowControllers) => void;
@@ -41,6 +42,7 @@ export const DemoFlowProvider: React.FunctionComponent<{ children: React.ReactNo
   const [lightspeedPhase, setLightspeedPhase] = React.useState<LightspeedPhase>('idle');
   const [contextPill, setContextPill] = React.useState<string | null>(null);
   const [selectedChip, setSelectedChip] = React.useState<string | null>(null);
+  const [fleetQuestion, setFleetQuestion] = React.useState<string | null>(null);
   const controllersRef = React.useRef<DemoFlowControllers | null>(null);
 
   const registerControllers = React.useCallback((controllers: DemoFlowControllers) => {
@@ -58,7 +60,9 @@ export const DemoFlowProvider: React.FunctionComponent<{ children: React.ReactNo
     setStepState(2);
   }, []);
 
-  const analyzeFleetInLightspeed = React.useCallback(() => {
+  const analyzeFleetInLightspeed = React.useCallback((prompt?: string) => {
+    const question = prompt?.trim();
+    setFleetQuestion(question ? question : null);
     setHelpDocOpen(true);
     setLightspeedActive(true);
     setContextPill(LIGHTSPEED_CONTEXT_PILL);
@@ -103,6 +107,7 @@ export const DemoFlowProvider: React.FunctionComponent<{ children: React.ReactNo
     setLightspeedPhase('idle');
     setContextPill(null);
     setSelectedChip(null);
+    setFleetQuestion(null);
     controllersRef.current?.openSearchWithQuery(DEMO_SEARCH_QUERY);
   }, []);
 
@@ -124,6 +129,7 @@ export const DemoFlowProvider: React.FunctionComponent<{ children: React.ReactNo
       lightspeedPhase,
       contextPill,
       selectedChip,
+      fleetQuestion,
       setStep,
       nextStep,
       reset,
@@ -140,6 +146,7 @@ export const DemoFlowProvider: React.FunctionComponent<{ children: React.ReactNo
       lightspeedPhase,
       contextPill,
       selectedChip,
+      fleetQuestion,
       setStep,
       nextStep,
       reset,

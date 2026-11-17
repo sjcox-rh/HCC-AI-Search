@@ -1,12 +1,16 @@
 import * as React from 'react';
+import { Button, CodeBlock, CodeBlockCode, Label, Title } from '@patternfly/react-core';
 import {
-  Button,
-  CodeBlock,
-  CodeBlockCode,
-  Label,
-  Title,
-} from '@patternfly/react-core';
-import { BarsIcon, CommentsIcon, ExternalLinkAltIcon } from '@patternfly/react-icons';
+  ChatbotContent,
+  ChatbotFooter,
+  ChatbotFootnote,
+  ChatbotWelcomePrompt,
+  Message,
+  MessageBar,
+  MessageBox,
+} from '@patternfly/chatbot';
+import { BarsIcon, ExternalLinkAltIcon } from '@patternfly/react-icons';
+import '@patternfly/chatbot/dist/css/main.css';
 import { ANSIBLE_PLAYBOOK_SNIPPET } from './demoFlowData';
 import { useDemoFlowOptional } from './DemoFlowContext';
 import './DemoFlow.css';
@@ -26,12 +30,45 @@ const ACTION_CHIPS = [
   },
 ] as const;
 
+const WELCOME_PROMPTS = [
+  { title: 'Tell me about Ask Red Hat.' },
+  { title: 'What technologies are used in Ask Red Hat?' },
+];
+
+const GREETING =
+  'Hello Hallo Hola Bonjour こんにちは Olá مرحباً Ahoj Ciao 안녕하세요 Hallo 你好\n\nGet answers from our library of support resources.';
+
+const GREETING_TIMESTAMP = '17/11/2026 11:01:44';
+
+interface ChatTurn {
+  id: string;
+  role: 'user' | 'bot';
+  content: string;
+}
+
 export const LightspeedChatPanel: React.FunctionComponent = () => {
   const demo = useDemoFlowOptional();
   const isDemoActive = Boolean(demo?.lightspeedActive);
   const phase = demo?.lightspeedPhase ?? 'idle';
   const contextPill = demo?.contextPill;
   const selectedChip = demo?.selectedChip;
+  const [turns, setTurns] = React.useState<ChatTurn[]>([]);
+
+  const sendMessage = (message: string | number) => {
+    const text = String(message).trim();
+    if (!text) {
+      return;
+    }
+    setTurns((current) => [
+      ...current,
+      { id: `user-${current.length}`, role: 'user', content: text },
+      {
+        id: `bot-${current.length}`,
+        role: 'bot',
+        content: 'Get answers from our library of support resources.',
+      },
+    ]);
+  };
 
   return (
     <div className="demo-flow-chat">
@@ -40,11 +77,8 @@ export const LightspeedChatPanel: React.FunctionComponent = () => {
           <Button variant="plain" aria-label="Chat options menu" className="demo-flow-chat__icon-btn">
             <BarsIcon />
           </Button>
-          <div className="demo-flow-chat__avatar" aria-hidden>
-            <CommentsIcon />
-          </div>
           <Title headingLevel="h2" size="md" className="demo-flow-chat__title">
-            Ask Red Hat · Lightspeed
+            Ask Red Hat
           </Title>
         </div>
         {contextPill && (
@@ -54,124 +88,117 @@ export const LightspeedChatPanel: React.FunctionComponent = () => {
         )}
       </div>
 
-      <div className="demo-flow-chat__messages">
-        {!isDemoActive && (
-          <div className="demo-flow-chat__bubble demo-flow-chat__bubble--bot">
-            <div className="demo-flow-chat__bot-avatar" aria-hidden>
-              <CommentsIcon />
-            </div>
-            <div className="demo-flow-chat__bubble-body">
-              Hi! I&apos;m here to help with your questions and feedback. How can I assist you today?
-            </div>
-          </div>
-        )}
+      <div className="demo-flow-chat__stage">
+        <ChatbotContent>
+          <MessageBox ariaLabel="Ask Red Hat conversation">
+            <ChatbotWelcomePrompt
+              title="Hello, sjcox@redhat.com"
+              description="How may I help you today?"
+              prompts={WELCOME_PROMPTS.map((prompt) => ({
+                title: prompt.title,
+                onClick: () => sendMessage(prompt.title),
+              }))}
+            />
+            <Message
+              role="bot"
+              isAvatarHidden
+              isMetadataVisible
+              timestamp={GREETING_TIMESTAMP}
+              content={GREETING}
+            />
 
-        {isDemoActive && phase === 'analyzing' && (
-          <div className="demo-flow-chat__bubble demo-flow-chat__bubble--bot">
-            <div className="demo-flow-chat__bot-avatar" aria-hidden>
-              <CommentsIcon />
-            </div>
-            <div className="demo-flow-chat__bubble-body demo-flow-chat__typing" aria-label="Lightspeed is analyzing">
-              <span />
-              <span />
-              <span />
-            </div>
-          </div>
-        )}
+            {turns.map((turn) => (
+              <Message
+                key={turn.id}
+                role={turn.role}
+                alignment={turn.role === 'user' ? 'end' : 'start'}
+                isAvatarHidden
+                isMetadataVisible={turn.role === 'bot'}
+                content={turn.content}
+              />
+            ))}
 
-        {isDemoActive && (phase === 'ready' || phase === 'playbook') && (
-          <>
-            <div className="demo-flow-chat__bubble demo-flow-chat__bubble--bot">
-              <div className="demo-flow-chat__bot-avatar" aria-hidden>
-                <CommentsIcon />
-              </div>
-              <div className="demo-flow-chat__bubble-body">
+            {isDemoActive && demo?.fleetQuestion && (
+              <Message role="user" alignment="end" isAvatarHidden content={demo.fleetQuestion} />
+            )}
+
+            {isDemoActive && phase === 'analyzing' && (
+              <Message role="bot" isAvatarHidden isLoading content="" aria-label="Lightspeed is analyzing" />
+            )}
+
+            {isDemoActive && (phase === 'ready' || phase === 'playbook') && (
+              <>
+                <Message
+                  role="bot"
+                  isAvatarHidden
+                  isMetadataVisible
+                  content={
+                    'I reviewed your **42** registered systems against the RHEL 10 hardware and deployment criteria from the guide:\n\n' +
+                    '- **36 hosts:** Compatible for direct in-place upgrade or image-mode rebase.\n' +
+                    '- **6 hosts:** Incompatible CPU architecture (pre-Haswell / x86-64-v2 detected).\n\n' +
+                    'How would you like to proceed?'
+                  }
+                />
+                <div className="demo-flow-chat__chips" role="group" aria-label="Lightspeed suggested actions">
+                  {ACTION_CHIPS.map((chip) => (
+                    <Button
+                      key={chip.id}
+                      variant={selectedChip === chip.id ? 'primary' : 'secondary'}
+                      className="demo-flow-chat__chip"
+                      onClick={() => demo?.selectActionChip(chip.id)}
+                    >
+                      {chip.label}
+                    </Button>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {isDemoActive && phase === 'playbook' && selectedChip === 'playbook' && (
+              <Message role="bot" isAvatarHidden isMetadataVisible>
                 <p>
-                  I reviewed your <strong>42</strong> registered systems against the RHEL 10 hardware
-                  and deployment criteria from the guide:
+                  Generated a verification playbook from the guide&apos;s x86-64-v3 requirement. Review the sample
+                  task, then open it in Automation Execution:
                 </p>
-                <ul>
-                  <li>
-                    <strong>36 hosts:</strong> Compatible for direct in-place upgrade or image-mode
-                    rebase.
-                  </li>
-                  <li>
-                    <strong>6 hosts:</strong> Incompatible CPU architecture (pre-Haswell / x86-64-v2
-                    detected).
-                  </li>
-                </ul>
-                <p>How would you like to proceed?</p>
-              </div>
-            </div>
-
-            <div className="demo-flow-chat__chips" role="group" aria-label="Lightspeed suggested actions">
-              {ACTION_CHIPS.map((chip) => (
-                <Button
-                  key={chip.id}
-                  variant={selectedChip === chip.id ? 'primary' : 'secondary'}
-                  className="demo-flow-chat__chip"
-                  onClick={() => demo?.selectActionChip(chip.id)}
-                >
-                  {chip.label}
+                <CodeBlock className="demo-flow-chat__code">
+                  <CodeBlockCode>{ANSIBLE_PLAYBOOK_SNIPPET}</CodeBlockCode>
+                </CodeBlock>
+                <Button variant="link" isInline icon={<ExternalLinkAltIcon />} iconPosition="end">
+                  Open in Automation Execution
                 </Button>
-              ))}
-            </div>
-          </>
-        )}
+              </Message>
+            )}
 
-        {isDemoActive && phase === 'playbook' && selectedChip === 'playbook' && (
-          <div className="demo-flow-chat__bubble demo-flow-chat__bubble--bot">
-            <div className="demo-flow-chat__bot-avatar" aria-hidden>
-              <CommentsIcon />
-            </div>
-            <div className="demo-flow-chat__bubble-body">
-              <p>
-                Generated a verification playbook from the guide&apos;s x86-64-v3 requirement. Review
-                the sample task, then open it in Automation Execution:
-              </p>
-              <CodeBlock className="demo-flow-chat__code">
-                <CodeBlockCode>{ANSIBLE_PLAYBOOK_SNIPPET}</CodeBlockCode>
-              </CodeBlock>
-              <Button variant="link" isInline icon={<ExternalLinkAltIcon />} iconPosition="end">
-                Open in Automation Execution
-              </Button>
-            </div>
-          </div>
-        )}
+            {isDemoActive && selectedChip === 'image-builder' && (
+              <Message
+                role="bot"
+                isAvatarHidden
+                isMetadataVisible
+                content="Drafted a RHEL 10 Image Mode (bootc) template in Image Builder with x86_64 baseline and OpenSSL 3.2 crypto policy defaults. Ready to open Image Builder when you are."
+              />
+            )}
 
-        {isDemoActive && selectedChip === 'image-builder' && (
-          <div className="demo-flow-chat__bubble demo-flow-chat__bubble--bot">
-            <div className="demo-flow-chat__bot-avatar" aria-hidden>
-              <CommentsIcon />
-            </div>
-            <div className="demo-flow-chat__bubble-body">
-              Drafted a RHEL 10 Image Mode (<code>bootc</code>) template in Image Builder with x86_64
-              baseline and OpenSSL 3.2 crypto policy defaults. Ready to open Image Builder when you
-              are.
-            </div>
-          </div>
-        )}
+            {isDemoActive && selectedChip === 'export-csv' && (
+              <Message
+                role="bot"
+                isAvatarHidden
+                isMetadataVisible
+                content="Exported the 6 incompatible hosts to CSV (hostname, architecture baseline, owner, last check-in). Download is ready for your upgrade planning workspace."
+              />
+            )}
+          </MessageBox>
+        </ChatbotContent>
 
-        {isDemoActive && selectedChip === 'export-csv' && (
-          <div className="demo-flow-chat__bubble demo-flow-chat__bubble--bot">
-            <div className="demo-flow-chat__bot-avatar" aria-hidden>
-              <CommentsIcon />
-            </div>
-            <div className="demo-flow-chat__bubble-body">
-              Exported the 6 incompatible hosts to CSV (hostname, architecture baseline, owner,
-              last check-in). Download is ready for your upgrade planning workspace.
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="demo-flow-chat__input">
-        <input type="text" placeholder="Ask Lightspeed…" aria-label="Ask Lightspeed" disabled={!isDemoActive} />
-        <Button variant="primary" className="demo-flow-chat__send" isDisabled={!isDemoActive} aria-label="Send">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-          </svg>
-        </Button>
+        <ChatbotFooter>
+          <MessageBar
+            onSendMessage={sendMessage}
+            alwayShowSendButton
+            hasAttachButton={false}
+            hasMicrophoneButton={false}
+            aria-label="Send a message"
+          />
+          <ChatbotFootnote label="Always review AI generated content prior to use." />
+        </ChatbotFooter>
       </div>
     </div>
   );

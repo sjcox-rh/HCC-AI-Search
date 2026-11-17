@@ -42,6 +42,7 @@ import { useDemoFlowOptional } from '@app/DemoFlow/DemoFlowContext';
 import {
   PaletteAction,
   PaletteResultKind,
+  isRhel10UpgradeQuery,
   resolveQuery,
   SearchNavTarget,
 } from '../SearchPalette/searchPaletteData';
@@ -215,6 +216,16 @@ const SearchResults: React.FunctionComponent = () => {
       }
     };
 
+    const queryLower = query.toLowerCase();
+    if (isRhel10UpgradeQuery(queryLower)) {
+      const upgradeGuide = [...resolution.actions, ...resolution.docs].find((item) =>
+        item.title.toLowerCase().startsWith('upgrading to rhel 10'),
+      );
+      if (upgradeGuide) {
+        addIfNew(upgradeGuide, kindForItem(upgradeGuide));
+      }
+    }
+
     // First: landing pages (service kind)
     resolution.actions.forEach((item) => {
       const kind = kindForItem(item);
@@ -251,7 +262,7 @@ const SearchResults: React.FunctionComponent = () => {
     });
 
     return top;
-  }, [resolution]);
+  }, [query, resolution]);
 
   const openResult = (item: PaletteAction) => {
     if (item.access === 'restricted') {

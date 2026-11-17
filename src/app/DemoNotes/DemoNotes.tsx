@@ -139,8 +139,8 @@ const demoAreas: Area[] = [
         description:
           'End-to-end flow: Global Search → Help Panel upgrade guide → Lightspeed fleet compatibility analysis.',
         prompts: [
+          { label: 'Upgrading to rhel 10', type: 'nav' },
           { label: 'RHEL 10 migration image mode', type: 'nav' },
-          { label: 'RHEL 10 image mode bootc', type: 'nav' },
           { label: 'RHEL 10 migration', type: 'ai' },
         ],
       },
@@ -277,14 +277,6 @@ const DemoNotes: React.FunctionComponent<DemoNotesProps> = ({
                                     }
                                   >
                                     Ask Lightspeed
-                                  </Button>
-                                  <Button
-                                    variant="primary"
-                                    size="sm"
-                                    isBlock
-                                    onClick={() => demo.analyzeFleetInLightspeed()}
-                                  >
-                                    Analyze fleet in Lightspeed
                                   </Button>
                                 </div>
                               </div>
