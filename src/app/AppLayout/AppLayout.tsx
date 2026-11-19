@@ -121,6 +121,7 @@ import {
   PlayIcon,
   ProjectDiagramIcon,
   QuestionCircleIcon,
+  RhUiAiChatbotIcon,
   RocketIcon,
   ServerIcon,
   ShieldAltIcon,
@@ -2004,7 +2005,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
         title={
           <Tooltip content="Ask Lightspeed">
             <span className="help-panel-chat-tab-title">
-              <CommentsIcon style={{ width: '16px', height: '16px' }} />
+              <RhUiAiChatbotIcon style={{ width: '16px', height: '16px' }} />
             </span>
           </Tooltip>
         }
@@ -3560,28 +3561,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
               </Button>
             </Tooltip>
 
-            {/* Chat / Lightspeed */}
-            <Tooltip
-              content="Ask Lightspeed"
-              position="bottom"
-              {...(isDrawerExpanded && (tabs.find((t) => t.id === 'get-started')?.activeSubTab === HELP_CHAT_TAB)
-                ? { isVisible: false }
-                : {})}
-            >
-              <Button
-                variant="plain"
-                onClick={openLightspeedView}
-                aria-label="Ask Lightspeed"
-                aria-expanded={
-                  isDrawerExpanded &&
-                  tabs.find((t) => t.id === 'get-started')?.activeSubTab === HELP_CHAT_TAB
-                }
-              >
-                <CommentsIcon />
-              </Button>
-            </Tooltip>
-
-            {/* Help Panel */}
+            {/* Help Panel — opens on the Ask Lightspeed chat tab */}
             <Tooltip 
               content="Help" 
               position="bottom"
@@ -3589,27 +3569,14 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
             >
               <Button
                 variant="plain"
+                icon={<RhUiAiChatbotIcon />}
                 onClick={() => {
                   const helpTab = tabs.find((t) => t.id === 'get-started');
                   if (isDrawerExpanded && helpTab?.activeSubTab === HELP_CHAT_TAB) {
-                    setOpenedHelpDoc(null);
-                    setTabs((prevTabs) =>
-                      prevTabs.map((tab) =>
-                        tab.id === 'get-started'
-                          ? {
-                              ...tab,
-                              activeSubTab: 1,
-                              hasUserInteracted: true,
-                              title: 'Learn',
-                              originalTitle: 'Learn',
-                              searchQuery: '',
-                            }
-                          : tab,
-                      ),
-                    );
+                    onDrawerClose();
                     return;
                   }
-                  onDrawerToggle();
+                  openLightspeedView();
                 }}
                 aria-label="Help"
                 aria-expanded={isDrawerExpanded}

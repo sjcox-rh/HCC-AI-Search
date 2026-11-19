@@ -17,6 +17,7 @@ import {
   TabTitleText,
   Title,
   Tooltip,
+  Spinner,
   Split,
   SplitItem,
 } from '@patternfly/react-core';
@@ -26,7 +27,7 @@ import {
   DownloadIcon,
   BookOpenIcon,
   ClusterIcon,
-  CommentsIcon,
+  RhUiAiChatbotIcon,
   FolderOpenIcon,
   HddIcon,
   HeadsetIcon,
@@ -47,6 +48,7 @@ import {
   getContextualSuggestions,
   getMatchingPrefixes,
   getShortcutLabel,
+  isRhel10UpgradeQuery,
   PaletteAction,
   PaletteResultKind,
   parseQuery,
@@ -285,6 +287,19 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
 
   const hasQuery = query.trim().length > 0;
   const resolution = React.useMemo(() => resolveQuery(query), [query]);
+  const upgradeQuery = isRhel10UpgradeQuery(query) ? query.trim().toLowerCase() : '';
+  const [readyUpgradeQuery, setReadyUpgradeQuery] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (!upgradeQuery) {
+      return undefined;
+    }
+    setReadyUpgradeQuery(null);
+    const timer = window.setTimeout(() => setReadyUpgradeQuery(upgradeQuery), 7000);
+    return () => window.clearTimeout(timer);
+  }, [upgradeQuery]);
+
+  const aiSummaryReady = !upgradeQuery || readyUpgradeQuery === upgradeQuery;
   const commonActions = React.useMemo(() => getCommonActions(currentPath), [currentPath]);
   const suggestions = React.useMemo(() => getContextualSuggestions(currentPath), [currentPath]);
   const matchingPrefixes = React.useMemo(() => getMatchingPrefixes(query), [query]);
@@ -349,6 +364,11 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
       if (rawId === 'ctx-patch') {
         addToHistory(action);
         applyQuery('Generate patch status report');
+        return;
+      }
+      if (rawId === 'suggest-upgrade-rhel9') {
+        addToHistory(action);
+        applyQuery('upgrading to rhel 10');
         return;
       }
       if (action.access === 'restricted') {
@@ -658,7 +678,9 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
         aria-label={
           isRestricted
             ? `${item.title}, access required, owned by ${item.owner || 'unknown'}`
-            : undefined
+            : item.conversationSource
+              ? `${item.title}. ${item.conversationSource.label}`
+              : undefined
         }
         onMouseEnter={() => {
           const index = flatItems.findIndex((flat) => flat.id === item.id);
@@ -687,8 +709,17 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
         </Tooltip>
         <span className="ai-search-palette__item-body">
           <span className="ai-search-palette__item-title">{item.title}</span>
-          {(item.description || item.meta) && (
-            <span className="ai-search-palette__item-meta">{item.meta || item.description}</span>
+          {item.conversationSource ? (
+            <Tooltip content={item.conversationSource.detail} position="bottom">
+              <span className="ai-search-palette__item-source">
+                <RhUiAiChatbotIcon aria-hidden />
+                {item.conversationSource.label}
+              </span>
+            </Tooltip>
+          ) : (
+            (item.description || item.meta) && (
+              <span className="ai-search-palette__item-meta">{item.meta || item.description}</span>
+            )
           )}
           {isRestricted && item.owner && (
             <span className="ai-search-palette__item-meta">Owner: {item.owner}</span>
@@ -706,7 +737,7 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
                     onAskLightspeed(item);
                   }}
                 >
-                  <CommentsIcon />
+                  <RhUiAiChatbotIcon />
                 </Button>
               </Tooltip>
             )}
@@ -885,7 +916,14 @@ const SearchPalette: React.FunctionComponent<SearchPaletteProps> = ({
               </div>
             )}
 
-            {resolution.answer && !resolution.prefix && (
+            {resolution.answer && !resolution.prefix && !aiSummaryReady && (
+              <div className="ai-search-palette__ai-hint" role="status" aria-live="polite">
+                <Spinner diameter="16px" aria-hidden="true" aria-valuetext="Loading the AI summary" />
+                <Content component="small">Loading the AI summary...</Content>
+              </div>
+            )}
+
+            {resolution.answer && !resolution.prefix && aiSummaryReady && (
               <div className="ai-search-palette__ai-hint">
                 <img src={SparkleIcon} alt="" width={14} height={14} />
                 <Content component="small">

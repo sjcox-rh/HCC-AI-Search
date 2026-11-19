@@ -38,6 +38,11 @@ export interface PaletteAction {
   askLightspeed?: boolean;
   /** Prefer showing Open / Help Panel / Ask Lightspeed triage buttons */
   triageActions?: boolean;
+  /** Suggestion carried over from a conversation on another Red Hat site */
+  conversationSource?: {
+    label: string;
+    detail: string;
+  };
 }
 
 export interface AiAnswer {
@@ -745,11 +750,14 @@ export const getCommonActions = (pathname: string): PaletteAction[] => {
   if (pathname.startsWith('/overview') || pathname === '/') {
     return [
       {
-        id: 'common-register-rhel',
-        title: 'Register RHEL host',
-        meta: 'Start system registration',
-        kind: 'action',
-        nav: { route: '/overview', filters: ['RHEL', 'Register host'] },
+        id: 'suggest-upgrade-rhel9',
+        title: 'Upgrade RHEL 9 systems',
+        kind: 'suggestion',
+        conversationSource: {
+          label: 'From a recent chat on redhat.com',
+          detail:
+            'This suggestion continues a conversation you started on redhat.com, so you can pick it up here in the console.',
+        },
       },
       {
         id: 'common-subscription-usage',
